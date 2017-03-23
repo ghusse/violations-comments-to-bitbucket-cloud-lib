@@ -16,3 +16,6 @@ username=[A valid username]
 password=[Application password generated for your username, with rights on pull requests]
 ```
 
+## License
+
+License under MIT License, Copyright 2017 Guillaume Gautreau
