@@ -1,5 +1,7 @@
 # Violations comments to bitbucket cloud comments lib
 
+[![Build Status](https://travis-ci.org/ghusse/violations-comments-to-bitbucket-cloud-lib.svg?branch=master)](https://travis-ci.org/ghusse/violations-comments-to-bitbucket-cloud-lib)
+
 This library is currently under development and not functional.
 
 Library to allow CI servers to publish comments about violations introduced in Pull Requests.
