@@ -1,8 +1,8 @@
 language: java
 script:
-- mvn test -B
+  - mvn test -B
 after_success:
-- mvn clean test jacoco:report coveralls:report
+  - mvn clean test jacoco:report coveralls:report
 env:
   global:
     secure: ljU2/jpFi1LwfrhxsEis8D6T38S1ZfDZrzvaRPORXEHqgLszmOc9WR0L7T8w5rlAcnbSPhFstFu59I06ojufnTC8LcyR2DfheCG32XM4j8Ab0zInfs5w423iz6ewt9JRJCeLC2AkkTQlh/IC6otGvhN2Qj1fzdmXjO8OwheRigim+54icVAaNEaQXHA8AFdR/3cxG0Tikx73qfYIfnVvawAtA6uW8KtDMCVhuwQnJ5QRFPHW/0+d/3i1tYLR6hT63VNy+Sd4YfvyBhFQXxvsQ33PP+Mviso4IZb5b7PFIu+Ld6dHWyFlyNUyOmpNkgzg+zsy3rswC+Ye5k9CiQqzOV+1+SXWbDjTuD+IoQx3mxneeZ1+GtF2ivxGfXcaFjBgZNqol7SkfbrdzKtc/xyw6eFR4IjvDcfuYnS1mrUnCVXC04EUho0nPiX5I10+acByzsh9t/KoQoYajIHDr5SCaU28Pu5WJgqg29xqK6+AB9pU82ke/Zv/Vxly6XJTT8kvrn0U9hb863zSAz176U3oTehEoT4DKIOgR07bLQ7EXZc37tlkk8LtsxX3/99Hj53t+JmOfyYEuLgeshFg7O7EpSDxL9g7c9jbhIez6R47RJjDabzMDeM7n0KzEUNnN0tOzSobDDkRkbjK6lDcwURaGUp6nrNNzs+h79J2ISC+i9s=
