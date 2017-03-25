@@ -1,6 +1,6 @@
 # Violations comments to bitbucket cloud comments lib
 
-[![Build Status](https://travis-ci.org/ghusse/violations-comments-to-bitbucket-cloud-lib.svg?branch=master)](https://travis-ci.org/ghusse/violations-comments-to-bitbucket-cloud-lib)
+[![Build Status](https://travis-ci.org/ghusse/violations-comments-to-bitbucket-cloud-lib.svg?branch=master)](https://travis-ci.org/ghusse/violations-comments-to-bitbucket-cloud-lib)[![Coverage Status](https://coveralls.io/repos/github/ghusse/violations-comments-to-bitbucket-cloud-lib/badge.svg?branch=master)](https://coveralls.io/github/ghusse/violations-comments-to-bitbucket-cloud-lib?branch=master)
 
 This library is currently under development and not functional.
 
