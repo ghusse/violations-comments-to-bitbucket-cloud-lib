@@ -7,7 +7,7 @@ addons:
       secure: "YzWn5mVA460oAmdNYoGNjloRzsX3ZH9cvxRCFNF/UqJfsKiTYUizPYgJLui/X5HNAtfw5iXVl+5if0E1swPvGTuRUbw2qADEMNtYiGQiszfdKjp1x7gJGMBasUGiq0RSM/CYHEwsjasNs8Kznp0BI7Zmd7sxWXY9hQpAXbBmPBtKij2GtXNoHArPbTySGAMztXbkVBqS08btzHVBSgK18IGB4HcYld7ZHQf1aN3OKQFaPocY0MuxZf9vE7dacohIHpFvpn5N+Akp0gP/ADWjEPRzi49KUeZN/sl8T5ZwG4rOVKl+KkNe9gQg+bdtjNhI3X5rkUkRgSLuCzCUz5Vo6b9q+JSBGKVQggNfGBjxRltkmC79nyOohe+bfv6tE9zgTrTDyZOe/NPCamtKSfrPgtjeS0PD2mOXSO6QuZHc1CNvE+YidsXigJ6xMAwKjMPSDTki5cVBpoOxq4sVWa0sq68sw2INs689JeAccYVLLM4NpuyotQE2KLL4blKOsjrqQXOH2/1oZV+VQX1NG4b608YLQdJO2g4mR9lNIRyDuO2B+1p7xmn5++l/hTRFdA47e+Ua6pyWqCjCt1OMPvXc029nVxTh9BW/qOtrenmdu3nnSkV2nBKaB0qGRu8uEX665VMShcw4BVkqh2GYIOh2VLsongLVUoKh9d8txpWPOAA="
 
 script:
-  - mvn -B clean test jacoco:report coveralls:report
+  - mvn -B clean test jacoco:report coveralls:report sonar:sonar
 
 env:
   global:
