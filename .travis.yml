@@ -8,7 +8,7 @@ addons:
     github_token:
       secure: "teMcjHBW/KvvgQfgRKlVvmVdLftSl3yb+FYwrlNcNRo6nBAVBmrpx0bEG1NojAW06aCmv/HoGCxBBwS4wscm0hPoc3dz+e8znZ/ZhXfcZzfqJOb+mmi/KJ2U9Kcw7eASmFEgufv5nCuR/xNenlKXQokqBs4DyuXsdXZhtMSbtqWlmOhRusFMrJ8xxBFFqcfZpi+6NTZJ6kg1WKRaGvlykkJDzxR2b8g3q10lnjtlsiAzzE5CcrG4Bi81/xgBL9w4+k2NzA8J9ifDzdwAMt5i5H9WKPu9bY/dfFdZ69JIVvkf/NlN8bmzqx6pKu1bs7KXbpo1XJzh34Ohp+2M1gOURlUVaAQA7OAh5lrIzuE8bO/4TvDbuWpsiZmRWQeyS8KiTL1/5HIt65HMkPzvRbWbHCDB+HYiMBSqsN+UUBaP9hHybwRAr0RIrSctc8+SeUrjGRTOtpNgHN62DWzTc52aEMab0IyhKBqINQjDpL0Za1n80aSUK0QLJpIkQpVVNGh843ME0MpHxG6nyD6G1hwhju2EBw5lYMRW9AOnXCxLDminP/Xnbx7FJz3x846YI/I6tSq6slajmwktpcIpyvhgKjZgKpFh4+vaWF3lDQthq5D6cS6Crrb62fmoclorlH9OFer576L7cmBxvvpdp7d7ncnu9knFStZ0jro/m53uM+U="
 script:
-  - mvn -B clean test jacoco:report coveralls:report sonar:sonar
+  - mvn -B clean test jacoco:report coveralls:report install sonar:sonar
 
 env:
   global:
