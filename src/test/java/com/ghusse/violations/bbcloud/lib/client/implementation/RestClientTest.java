@@ -1,13 +1,15 @@
 package com.ghusse.violations.bbcloud.lib.client.implementation;
 
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContent;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContentFactory;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
 import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -20,6 +22,10 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RestClientTest {
+  private static final String USERNAME = "user";
+  private static final String PASSWORD = "pass";
+  private static final String URL = "http://nowhere";
+
   @Mock
   private NetHttpTransport transport;
 
@@ -34,7 +40,9 @@ public class RestClientTest {
   @Mock
   private InputStream content;
 
-  @InjectMocks
+  @Mock
+  private JsonHttpContentFactory contentFactory;
+
   private RestClient target;
 
   @Before
@@ -48,35 +56,56 @@ public class RestClientTest {
 
     when(this.requestFactory.buildGetRequest(any(GenericUrl.class)))
             .thenReturn(this.request);
+    when(this.requestFactory.buildPostRequest(any(GenericUrl.class), any(HttpContent.class)))
+            .thenReturn(this.request);
+    when(this.requestFactory.buildDeleteRequest(any(GenericUrl.class)))
+            .thenReturn(this.request);
 
     when(this.request.execute())
             .thenReturn(this.response);
 
     when(this.response.getContent())
             .thenReturn(this.content);
+
+    this.target = new RestClient(this.transport, this.contentFactory);
   }
 
   @Test
-  public void itShouldExecuteAnAuthenticatedHttpCallAndParseTheResult() throws IOException {
-    String userName = "user";
-    String password = "pass";
-    String url = "http://nowhere";
-
-    TestClass expectedResult = mock(TestClass.class);
-
+  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
-    target.setAuthentication(userName, password);
-    InputStream result = target.get(url);
+    target.setAuthentication(USERNAME, PASSWORD);
+    InputStream result = target.get(URL);
 
     assertEquals(this.content, result);
 
     ArgumentCaptor<GenericUrl> urlArgument = ArgumentCaptor.forClass(GenericUrl.class);
     verify(requestFactory, times(1))
             .buildGetRequest(urlArgument.capture());
-    assertEquals("http://nowhere", urlArgument.getValue().toString());
+    assertEquals(URL, urlArgument.getValue().toString());
 
+    assertAuthentication();
+  }
+
+  @Test
+  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException {
+    when(this.response.getStatusCode())
+            .thenReturn(200);
+
+    target.get(URL);
+    verify(this.request, never()).setHeaders(any(HttpHeaders.class));
+
+    target.setAuthentication(null, PASSWORD);
+    target.get(URL);
+    verify(this.request, never()).setHeaders(any(HttpHeaders.class));
+
+    target.setAuthentication(USERNAME, null);target.get(URL);
+    target.get(URL);
+    verify(this.request, never()).setHeaders(any(HttpHeaders.class));
+  }
+
+  private void assertAuthentication() {
     ArgumentCaptor<HttpHeaders> headersArgument = ArgumentCaptor.forClass(HttpHeaders.class);
     verify(this.request, times(1))
             .setHeaders(headersArgument.capture());
@@ -84,11 +113,70 @@ public class RestClientTest {
     assertEquals("Basic dXNlcjpwYXNz", headersArgument.getValue().getAuthorization());
   }
 
-  /**
-   * Used to test response deserialization
-   */
-  class TestClass {
-    public TestClass() {
+  @Test
+  public void itShouldSendAnAuthenticatedPostRequest() throws IOException {
+    Object data = new Object();
+
+    JsonHttpContent jsonContent = mock(JsonHttpContent.class);
+
+    when(this.contentFactory.create(data))
+            .thenReturn(jsonContent);
+
+    when(this.response.getStatusCode())
+            .thenReturn(200);
+
+    this.target.setAuthentication(USERNAME, PASSWORD);
+    InputStream result = this.target.post(URL, data);
+
+    assertEquals(this.content, result);
+
+    ArgumentCaptor<GenericUrl> urlArgument = ArgumentCaptor.forClass(GenericUrl.class);
+    ArgumentCaptor<HttpContent> contentArgument = ArgumentCaptor.forClass(HttpContent.class);
+    verify(requestFactory, times(1))
+            .buildPostRequest(urlArgument.capture(), contentArgument.capture());
+    assertEquals(URL, urlArgument.getValue().toString());
+    assertEquals(jsonContent, contentArgument.getValue());
+
+    verify(this.contentFactory, times(1)).create(data);
+  }
+
+  @Test
+  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException {
+    when(this.response.getStatusCode())
+            .thenReturn(200);
+
+    this.target.setAuthentication(USERNAME, PASSWORD);
+    InputStream result = this.target.delete(URL);
+
+    ArgumentCaptor<GenericUrl> urlArgument = ArgumentCaptor.forClass(GenericUrl.class);
+    verify(requestFactory, times(1))
+            .buildDeleteRequest(urlArgument.capture());
+    assertEquals(URL, urlArgument.getValue().toString());
+
+    assertAuthentication();
+
+    assertEquals(this.content, result);
+  }
+
+  @Test
+  public void itShouldThrowAnErrorIfHttpCodeIs199() throws IOException {
+    assertErrorWithHttpCode(199);
+  }
+
+  @Test
+  public void itShouldThrowAnErrorIfHttpCodeIs300() throws IOException {
+    assertErrorWithHttpCode(300);
+  }
+
+  private void assertErrorWithHttpCode(int httpCode) throws IOException {
+    when(this.response.getStatusCode())
+            .thenReturn(httpCode);
+
+    try {
+      this.target.delete(URL);
+      Assert.fail("Should have thrown an exception");
+    }catch (RuntimeException e){
+      assertEquals("HTTP error on the Bitbucket API", e.getMessage());
     }
   }
 }
