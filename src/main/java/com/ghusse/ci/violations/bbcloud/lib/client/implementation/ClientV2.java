@@ -64,7 +64,7 @@ public class ClientV2 {
     try {
       pageComments = this.mapper.readValue(content, type);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new ClientException("Unable to parse the response.", description, content, e);
     }
 
     if (pageComments.getPageLength() > page) {
