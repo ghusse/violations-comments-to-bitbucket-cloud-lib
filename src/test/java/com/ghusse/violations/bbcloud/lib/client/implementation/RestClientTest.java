@@ -16,6 +16,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -160,24 +161,30 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldThrowAnErrorIfHttpCodeIs199() throws RestClientException {
+  public void itShouldThrowAnErrorIfHttpCodeIs199() throws IOException {
     assertErrorWithHttpCode(199);
   }
 
   @Test
-  public void itShouldThrowAnErrorIfHttpCodeIs300() throws RestClientException {
+  public void itShouldThrowAnErrorIfHttpCodeIs300() throws IOException {
     assertErrorWithHttpCode(300);
   }
 
-  private void assertErrorWithHttpCode(int httpCode) throws RestClientException {
+  private void assertErrorWithHttpCode(int httpCode) throws IOException {
     when(this.response.getStatusCode())
             .thenReturn(httpCode);
+
+    when(this.request.getRequestMethod()).thenReturn("VERB");
+    when(this.request.getUrl()).thenReturn(new GenericUrl(URL));
+    when(this.response.parseAsString()).thenReturn("RESPONSE");
 
     try {
       this.target.delete(URL);
       Assert.fail("Should have thrown an exception");
-    }catch (RuntimeException e){
-      assertEquals("HTTP error on the Bitbucket API", e.getMessage());
+    }catch (RestClientException e){
+      assertEquals(
+              String.format(Locale.ENGLISH, "Received an error code from the API. VERB %s. Received code %d: RESPONSE", URL, httpCode),
+              e.getMessage());
     }
   }
 }
