@@ -39,11 +39,11 @@ public class ClientV2 {
     this.client.setAuthentication(userName, password);
   }
 
-  public List<Comment> listCommentsForPullRequest(PullRequestDescription description) throws IOException {
+  public List<Comment> listCommentsForPullRequest(PullRequestDescription description) throws IOException, RestClientException {
     return listCommentsForPullRequestFromPage(description, 1);
   }
 
-  private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws IOException {
+  private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws IOException, RestClientException {
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments?page=%d",
             ENDPOINT,

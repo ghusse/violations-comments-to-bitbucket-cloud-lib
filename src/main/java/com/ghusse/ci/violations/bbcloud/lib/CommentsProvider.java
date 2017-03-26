@@ -1,6 +1,7 @@
 package com.ghusse.ci.violations.bbcloud.lib;
 
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   public void createCommentWithAllSingleFileComments(String content) {
     try {
       this.client.publishPullRequestComment(this.pullRequestDescription, content);
-    } catch (IOException e) {
+    } catch (RestClientException e) {
       LOG.error("Unable to publish a pull request comment", e);
       throw new RuntimeException("Unable to publish a pull request comment", e);
     }
@@ -51,7 +52,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
               content,
               changedFile.getFilename(),
               lineNumber);
-    } catch (IOException e) {
+    } catch (RestClientException e) {
       LOG.error("Unable to publish a line comment", e);
       throw new RuntimeException(e);
     }
@@ -76,7 +77,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
       }
 
       return result;
-    } catch (IOException e) {
+    } catch (IOException|RestClientException e) {
       LOG.error("Unable to get the list of comments associated to a pull request", e);
       throw new RuntimeException(e);
     }
@@ -93,7 +94,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
       for (Comment comment : list) {
         this.client.deleteComment(this.pullRequestDescription, Integer.parseInt(comment.getIdentifier()));
       }
-    } catch (IOException e) {
+    } catch (RestClientException e) {
       LOG.error("Unable to delete comments", e);
       throw new RuntimeException("Unable to delete comments", e);
     }

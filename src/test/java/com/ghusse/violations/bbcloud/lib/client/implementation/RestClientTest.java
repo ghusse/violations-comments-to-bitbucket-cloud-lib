@@ -3,6 +3,7 @@ package com.ghusse.violations.bbcloud.lib.client.implementation;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContent;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContentFactory;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import org.junit.Assert;
@@ -71,7 +72,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException {
+  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException, RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
@@ -89,7 +90,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException {
+  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException, RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
@@ -100,7 +101,7 @@ public class RestClientTest {
     target.get(URL);
     verify(this.request, never()).setHeaders(any(HttpHeaders.class));
 
-    target.setAuthentication(USERNAME, null);target.get(URL);
+    target.setAuthentication(USERNAME, null);
     target.get(URL);
     verify(this.request, never()).setHeaders(any(HttpHeaders.class));
   }
@@ -114,7 +115,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldSendAnAuthenticatedPostRequest() throws IOException {
+  public void itShouldSendAnAuthenticatedPostRequest() throws IOException, RestClientException {
     Object data = new Object();
 
     JsonHttpContent jsonContent = mock(JsonHttpContent.class);
@@ -141,7 +142,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException {
+  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException, RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
@@ -159,16 +160,16 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldThrowAnErrorIfHttpCodeIs199() throws IOException {
+  public void itShouldThrowAnErrorIfHttpCodeIs199() throws RestClientException {
     assertErrorWithHttpCode(199);
   }
 
   @Test
-  public void itShouldThrowAnErrorIfHttpCodeIs300() throws IOException {
+  public void itShouldThrowAnErrorIfHttpCodeIs300() throws RestClientException {
     assertErrorWithHttpCode(300);
   }
 
-  private void assertErrorWithHttpCode(int httpCode) throws IOException {
+  private void assertErrorWithHttpCode(int httpCode) throws RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(httpCode);
 
