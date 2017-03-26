@@ -4,6 +4,7 @@ package com.ghusse.violations.bbcloud.lib.client.implementation;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
@@ -49,7 +50,7 @@ public class ClientV2Test {
   }
 
   @Test
-  public void itShouldListComments() throws IOException, RestClientException {
+  public void itShouldListComments() throws IOException, ClientException, RestClientException {
     PaginatedResponse<Comment> response = mock(PaginatedResponse.class);
 
     when(this.mapper.readValue(any(InputStream.class), any(TypeReference.class)))
@@ -72,7 +73,7 @@ public class ClientV2Test {
   }
 
   @Test
-  public void itShouldCombineMultiplePagesResults() throws IOException, RestClientException {
+  public void itShouldCombineMultiplePagesResults() throws IOException, RestClientException, ClientException {
     Comment firstComment = mock(Comment.class);
     Comment secondComment = mock(Comment.class);
 

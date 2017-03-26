@@ -1,6 +1,7 @@
 package com.ghusse.ci.violations.bbcloud.lib;
 
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
@@ -11,7 +12,6 @@ import se.bjurr.violations.lib.model.Violation;
 import se.bjurr.violations.lib.util.Optional;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,7 +77,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
       }
 
       return result;
-    } catch (IOException|RestClientException e) {
+    } catch (ClientException e) {
       LOG.error("Unable to get the list of comments associated to a pull request", e);
       throw new RuntimeException(e);
     }

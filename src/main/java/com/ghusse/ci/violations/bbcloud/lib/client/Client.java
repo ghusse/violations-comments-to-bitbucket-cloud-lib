@@ -1,6 +1,7 @@
 package com.ghusse.ci.violations.bbcloud.lib.client;
 
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
@@ -9,7 +10,6 @@ import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -32,7 +32,7 @@ public class Client {
     this.clientV2.setAuthentication(userName, password);
   }
 
-  public List<Comment> listCommentsForPullRequest(PullRequestDescription pullRequestDescription) throws IOException, RestClientException {
+  public List<Comment> listCommentsForPullRequest(PullRequestDescription pullRequestDescription) throws ClientException {
     return this.clientV2.listCommentsForPullRequest(pullRequestDescription);
   }
 

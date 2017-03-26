@@ -39,7 +39,7 @@ public class RestClient {
     try {
       request = this.requestFactory.buildGetRequest(genericUrl);
     } catch (IOException e) {
-      throw new RestClientException("Unable to create a delete request", "POST", genericUrl, e);
+      throw new RestClientException("Unable to create a get request", "POST", genericUrl, e);
     }
 
     return this.sendRequest(request);
@@ -53,7 +53,7 @@ public class RestClient {
     try {
       request = this.requestFactory.buildPostRequest(genericUrl, content);
     } catch (IOException e) {
-      throw new RestClientException("Unable to create a delete request", "POST", genericUrl, e);
+      throw new RestClientException("Unable to create a post request", "POST", genericUrl, e);
     }
 
     return this.sendRequest(request);
@@ -98,6 +98,7 @@ public class RestClient {
                 request.getRequestMethod(),
                 request.getUrl(),
                 statusCode);
+        LOGGER.warn("Parsing error", parseException);
       }
 
       throw new RestClientException(
