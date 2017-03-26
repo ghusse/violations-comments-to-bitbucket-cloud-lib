@@ -18,41 +18,38 @@ public class RestClient {
   private String userName;
   private String password;
 
-  @Inject
   private NetHttpTransport transport;
 
-  @Inject
   private JsonHttpContentFactory contentFactory;
 
   private HttpRequestFactory requestFactory;
 
-  public RestClient() {
+  @Inject
+  public RestClient(NetHttpTransport transport, JsonHttpContentFactory contentFactory) {
+    this.contentFactory = contentFactory;
+    this.transport = transport;
+
+    this.requestFactory = this.transport.createRequestFactory();
   }
 
   public InputStream get(String url) throws IOException {
-    HttpRequestFactory factory = this.getRequestFactory();
-
-    HttpRequest request = factory.buildGetRequest(new GenericUrl(url));
+    HttpRequest request = this.requestFactory.buildGetRequest(new GenericUrl(url));
 
     return this.sendRequest(request);
   }
 
   public InputStream post(String url, Object data) throws IOException {
-    HttpRequestFactory factory = this.getRequestFactory();
-
     JsonHttpContent content = contentFactory.create(data);
 
-    HttpRequest request = factory.buildPostRequest(new GenericUrl(url), content);
+    HttpRequest request = this.requestFactory.buildPostRequest(new GenericUrl(url), content);
 
     return this.sendRequest(request);
   }
 
-  public void delete(String url) throws IOException {
-    HttpRequestFactory factory = this.getRequestFactory();
+  public InputStream delete(String url) throws IOException {
+    HttpRequest request = this.requestFactory.buildDeleteRequest(new GenericUrl(url));
 
-    HttpRequest request = factory.buildDeleteRequest(new GenericUrl(url));
-
-    this.sendRequest(request);
+    return this.sendRequest(request);
   }
 
   private InputStream sendRequest(HttpRequest request) throws IOException {
@@ -64,7 +61,7 @@ public class RestClient {
 
     if (statusCode < 200 || statusCode >= 300) {
       LOGGER.warn("HTTP error on the Bitbucket API v2. Status: {}, Body: {}", statusCode, response.parseAsString());
-      throw new RuntimeException("HTTP error on the Bitbucket API v2");
+      throw new RuntimeException("HTTP error on the Bitbucket API");
     }
 
     return response.getContent();
@@ -77,14 +74,6 @@ public class RestClient {
 
       request.setHeaders(headers);
     }
-  }
-
-  private HttpRequestFactory getRequestFactory() {
-    if (this.requestFactory == null) {
-      this.requestFactory = this.transport.createRequestFactory();
-    }
-
-    return this.requestFactory;
   }
 
   public void setAuthentication(String userName, String password) {
