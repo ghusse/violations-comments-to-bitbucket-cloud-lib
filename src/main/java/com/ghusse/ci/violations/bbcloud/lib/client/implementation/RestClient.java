@@ -39,7 +39,7 @@ public class RestClient {
     try {
       request = this.requestFactory.buildGetRequest(genericUrl);
     } catch (IOException e) {
-      throw new RestClientException("Unable to create a get request", "POST", genericUrl, e);
+      throw new RestClientException("Unable to create a get request", "GET", genericUrl, e);
     }
 
     return this.sendRequest(request);

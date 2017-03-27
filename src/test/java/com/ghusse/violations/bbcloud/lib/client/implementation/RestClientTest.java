@@ -19,6 +19,8 @@ import java.io.InputStream;
 import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -187,4 +189,117 @@ public class RestClientTest {
               e.getMessage());
     }
   }
+
+  @Test
+  public void itShouldRethrowARestClientExceptionOnGet() throws IOException {
+    IOException cause = new IOException("message");
+    when(this.requestFactory.buildGetRequest(any(GenericUrl.class)))
+            .thenThrow(cause);
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals("Unable to create a get request GET " + URL + ".", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+  }
+
+  @Test
+  public void itShouldRethrowARestClientExceptionOnPost() throws IOException {
+    IOException cause = new IOException("message");
+    when(this.requestFactory.buildPostRequest(any(GenericUrl.class), (HttpContent) isNull()))
+            .thenThrow(cause);
+
+    try{
+      this.target.post(URL, null);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals("Unable to create a post request POST " + URL + ".", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+  }
+
+  @Test
+  public void itShouldRethrowARestClientExceptionOnDelete() throws IOException {
+    IOException cause = new IOException("message");
+    when(this.requestFactory.buildDeleteRequest(any(GenericUrl.class)))
+            .thenThrow(cause);
+
+    try{
+      this.target.delete(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals("Unable to create a delete request DELETE " + URL + ".", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+  }
+
+  @Test
+  public void itShouldThrowRequestExceptionAsRestClientException() throws IOException {
+    IOException cause = new IOException("Request error");
+
+    when(this.request.execute())
+            .thenThrow(cause);
+
+    when(this.request.getRequestMethod())
+            .thenReturn("FOO");
+
+    when(this.request.getUrl())
+            .thenReturn(new GenericUrl(URL));
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals(cause, error.getCause());
+      assertEquals("Unable to send the request to the API FOO " + URL + ".", error.getMessage());
+    }
+  }
+
+  @Test
+  public void itShouldThrowAnErrorEvenInCaseOfParseError() throws IOException {
+    IOException cause = new IOException("parse exception");
+
+    when(this.response.parseAsString())
+            .thenThrow(cause);
+    when(this.response.getStatusCode())
+            .thenReturn(404);
+    when(this.request.getRequestMethod())
+            .thenReturn("FOO");
+    when(this.request.getUrl())
+            .thenReturn(new GenericUrl(URL));
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch(RestClientException error){
+      assertNull(error.getCause());
+      assertEquals("Received an error code from the API. FOO " + URL + ". Received code 404: null", error.getMessage());
+    }
+  }
+
+  @Test
+  public void itShouldThrowContentExceptionAsRestClientException() throws IOException {
+    IOException cause = new IOException("Content error");
+
+    when(this.response.getContent())
+            .thenThrow(cause);
+    when(this.response.getStatusCode())
+            .thenReturn(200);
+
+    when(this.request.getRequestMethod())
+            .thenReturn("FOO");
+    when(this.request.getUrl())
+            .thenReturn(new GenericUrl(URL));
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals(cause, error.getCause());
+      assertEquals("Unable to get the response's content. FOO " + URL + ". Received code 200: null", error.getMessage());
+    }
+  }
+
 }
