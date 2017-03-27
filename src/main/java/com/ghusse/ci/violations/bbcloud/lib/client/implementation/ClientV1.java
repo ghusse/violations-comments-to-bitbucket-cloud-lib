@@ -12,10 +12,11 @@ public class ClientV1 {
   private static final String ENDPOINT = "https://api.bitbucket.org/1.0";
   private static final Logger LOGGER = LoggerFactory.getLogger(ClientV1.class);
 
-  @Inject
   private RestClient client;
 
-  public ClientV1() {
+  @Inject
+  public ClientV1(RestClient client) {
+    this.client = client;
   }
 
   public void setAuthentication(String userName, String password) {

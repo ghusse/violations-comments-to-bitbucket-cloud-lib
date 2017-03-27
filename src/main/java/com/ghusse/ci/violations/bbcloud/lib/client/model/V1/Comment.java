@@ -43,4 +43,16 @@ public class Comment {
   public String getContent() {
     return content;
   }
+
+  public Integer getLineFrom() {
+    return lineFrom;
+  }
+
+  public Integer getLineTo() {
+    return lineTo;
+  }
+
+  public String getFile() {
+    return file;
+  }
 }
