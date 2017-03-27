@@ -6,7 +6,6 @@ import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Locale;
 
 public class ClientV1 {
@@ -26,20 +25,20 @@ public class ClientV1 {
   public void publishLineComment(PullRequestDescription description,
                                  String content,
                                  String filename,
-                                 int lineNumber) throws IOException {
+                                 int lineNumber) throws RestClientException {
     Comment comment = new Comment(content, filename, lineNumber);
 
     this.publishComment(description, comment);
   }
 
   public void publishPullRequestComment(PullRequestDescription description,
-                                        String content) throws IOException {
+                                        String content) throws RestClientException {
     Comment comment = new Comment(content);
 
     this.publishComment(description, comment);
   }
 
-  public void deleteComment(PullRequestDescription description, long commentId) throws IOException {
+  public void deleteComment(PullRequestDescription description, long commentId) throws RestClientException {
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments/%d",
             ENDPOINT,
@@ -51,7 +50,7 @@ public class ClientV1 {
     this.client.delete(url);
   }
 
-  public void publishComment(PullRequestDescription description, Comment comment) throws IOException {
+  public void publishComment(PullRequestDescription description, Comment comment) throws RestClientException {
     LOGGER.debug("Publish comment {} on pull request {}", comment.getContent(), description);
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments",

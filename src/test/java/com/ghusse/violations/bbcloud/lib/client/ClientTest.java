@@ -2,8 +2,10 @@ package com.ghusse.violations.bbcloud.lib.client;
 
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,7 +37,7 @@ public class ClientTest {
   private Client target = new Client();
 
   @Test
-  public void listCommentsForPullRequestShouldProxyClient2() throws IOException {
+  public void listCommentsForPullRequestShouldProxyClient2() throws IOException, RestClientException, ClientException {
     List<Comment> expectedResult = new ArrayList<Comment>();
 
     when(this.clientV2.listCommentsForPullRequest(this.pullRequestDescription))

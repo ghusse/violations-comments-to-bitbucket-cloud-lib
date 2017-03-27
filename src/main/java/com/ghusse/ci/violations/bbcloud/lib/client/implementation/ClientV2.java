@@ -39,11 +39,11 @@ public class ClientV2 {
     this.client.setAuthentication(userName, password);
   }
 
-  public List<Comment> listCommentsForPullRequest(PullRequestDescription description) throws IOException {
+  public List<Comment> listCommentsForPullRequest(PullRequestDescription description) throws ClientException {
     return listCommentsForPullRequestFromPage(description, 1);
   }
 
-  private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws IOException {
+  private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws ClientException {
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments?page=%d",
             ENDPOINT,
@@ -52,10 +52,20 @@ public class ClientV2 {
             description.getId(),
             page);
 
-    InputStream content = this.client.get(url);
+    InputStream content = null;
+    try {
+      content = this.client.get(url);
+    } catch (RestClientException e) {
+      throw new ClientException("Error while requesting the api.", description, e);
+    }
 
     TypeReference<PaginatedResponse<Comment>> type = new TypeReference<PaginatedResponse<Comment>>() {};
-    PaginatedResponse<Comment> pageComments = this.mapper.readValue(content, type);
+    PaginatedResponse<Comment> pageComments = null;
+    try {
+      pageComments = this.mapper.readValue(content, type);
+    } catch (IOException e) {
+      throw new ClientException("Unable to parse the response.", description, content, e);
+    }
 
     if (pageComments.getPageLength() > page) {
       List<Comment> nextComments = listCommentsForPullRequestFromPage(description, page + 1);

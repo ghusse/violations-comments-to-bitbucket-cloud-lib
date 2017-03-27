@@ -3,6 +3,7 @@ package com.ghusse.violations.bbcloud.lib.client.implementation;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContent;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContentFactory;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import org.junit.Assert;
@@ -15,8 +16,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -71,7 +75,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException {
+  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException, RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
@@ -89,7 +93,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException {
+  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException, RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
@@ -100,7 +104,7 @@ public class RestClientTest {
     target.get(URL);
     verify(this.request, never()).setHeaders(any(HttpHeaders.class));
 
-    target.setAuthentication(USERNAME, null);target.get(URL);
+    target.setAuthentication(USERNAME, null);
     target.get(URL);
     verify(this.request, never()).setHeaders(any(HttpHeaders.class));
   }
@@ -114,7 +118,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldSendAnAuthenticatedPostRequest() throws IOException {
+  public void itShouldSendAnAuthenticatedPostRequest() throws IOException, RestClientException {
     Object data = new Object();
 
     JsonHttpContent jsonContent = mock(JsonHttpContent.class);
@@ -141,7 +145,7 @@ public class RestClientTest {
   }
 
   @Test
-  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException {
+  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException, RestClientException {
     when(this.response.getStatusCode())
             .thenReturn(200);
 
@@ -172,11 +176,130 @@ public class RestClientTest {
     when(this.response.getStatusCode())
             .thenReturn(httpCode);
 
+    when(this.request.getRequestMethod()).thenReturn("VERB");
+    when(this.request.getUrl()).thenReturn(new GenericUrl(URL));
+    when(this.response.parseAsString()).thenReturn("RESPONSE");
+
     try {
       this.target.delete(URL);
       Assert.fail("Should have thrown an exception");
-    }catch (RuntimeException e){
-      assertEquals("HTTP error on the Bitbucket API", e.getMessage());
+    }catch (RestClientException e){
+      assertEquals(
+              String.format(Locale.ENGLISH, "Received an error code from the API. VERB %s. Received code %d: RESPONSE", URL, httpCode),
+              e.getMessage());
     }
   }
+
+  @Test
+  public void itShouldRethrowARestClientExceptionOnGet() throws IOException {
+    IOException cause = new IOException("message");
+    when(this.requestFactory.buildGetRequest(any(GenericUrl.class)))
+            .thenThrow(cause);
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals("Unable to create a get request GET " + URL + ".", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+  }
+
+  @Test
+  public void itShouldRethrowARestClientExceptionOnPost() throws IOException {
+    IOException cause = new IOException("message");
+    when(this.requestFactory.buildPostRequest(any(GenericUrl.class), (HttpContent) isNull()))
+            .thenThrow(cause);
+
+    try{
+      this.target.post(URL, null);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals("Unable to create a post request POST " + URL + ".", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+  }
+
+  @Test
+  public void itShouldRethrowARestClientExceptionOnDelete() throws IOException {
+    IOException cause = new IOException("message");
+    when(this.requestFactory.buildDeleteRequest(any(GenericUrl.class)))
+            .thenThrow(cause);
+
+    try{
+      this.target.delete(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals("Unable to create a delete request DELETE " + URL + ".", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+  }
+
+  @Test
+  public void itShouldThrowRequestExceptionAsRestClientException() throws IOException {
+    IOException cause = new IOException("Request error");
+
+    when(this.request.execute())
+            .thenThrow(cause);
+
+    when(this.request.getRequestMethod())
+            .thenReturn("FOO");
+
+    when(this.request.getUrl())
+            .thenReturn(new GenericUrl(URL));
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals(cause, error.getCause());
+      assertEquals("Unable to send the request to the API FOO " + URL + ".", error.getMessage());
+    }
+  }
+
+  @Test
+  public void itShouldThrowAnErrorEvenInCaseOfParseError() throws IOException {
+    IOException cause = new IOException("parse exception");
+
+    when(this.response.parseAsString())
+            .thenThrow(cause);
+    when(this.response.getStatusCode())
+            .thenReturn(404);
+    when(this.request.getRequestMethod())
+            .thenReturn("FOO");
+    when(this.request.getUrl())
+            .thenReturn(new GenericUrl(URL));
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch(RestClientException error){
+      assertNull(error.getCause());
+      assertEquals("Received an error code from the API. FOO " + URL + ". Received code 404: null", error.getMessage());
+    }
+  }
+
+  @Test
+  public void itShouldThrowContentExceptionAsRestClientException() throws IOException {
+    IOException cause = new IOException("Content error");
+
+    when(this.response.getContent())
+            .thenThrow(cause);
+    when(this.response.getStatusCode())
+            .thenReturn(200);
+
+    when(this.request.getRequestMethod())
+            .thenReturn("FOO");
+    when(this.request.getUrl())
+            .thenReturn(new GenericUrl(URL));
+
+    try{
+      this.target.get(URL);
+      fail("Should have thrown an exception");
+    }catch (RestClientException error){
+      assertEquals(cause, error.getCause());
+      assertEquals("Unable to get the response's content. FOO " + URL + ". Received code 200: null", error.getMessage());
+    }
+  }
+
 }

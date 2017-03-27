@@ -32,39 +32,93 @@ public class RestClient {
     this.requestFactory = this.transport.createRequestFactory();
   }
 
-  public InputStream get(String url) throws IOException {
-    HttpRequest request = this.requestFactory.buildGetRequest(new GenericUrl(url));
+  public InputStream get(String url) throws RestClientException {
+    HttpRequest request;
+    GenericUrl genericUrl = new GenericUrl(url);
+
+    try {
+      request = this.requestFactory.buildGetRequest(genericUrl);
+    } catch (IOException e) {
+      throw new RestClientException("Unable to create a get request", "GET", genericUrl, e);
+    }
 
     return this.sendRequest(request);
   }
 
-  public InputStream post(String url, Object data) throws IOException {
+  public InputStream post(String url, Object data) throws RestClientException {
     JsonHttpContent content = contentFactory.create(data);
+    GenericUrl genericUrl = new GenericUrl(url);
+    HttpRequest request;
 
-    HttpRequest request = this.requestFactory.buildPostRequest(new GenericUrl(url), content);
+    try {
+      request = this.requestFactory.buildPostRequest(genericUrl, content);
+    } catch (IOException e) {
+      throw new RestClientException("Unable to create a post request", "POST", genericUrl, e);
+    }
 
     return this.sendRequest(request);
   }
 
-  public InputStream delete(String url) throws IOException {
-    HttpRequest request = this.requestFactory.buildDeleteRequest(new GenericUrl(url));
+  public InputStream delete(String url) throws RestClientException {
+    HttpRequest request;
+    GenericUrl genericUrl = new GenericUrl(url);
+
+    try {
+      request = this.requestFactory.buildDeleteRequest(genericUrl);
+    } catch (IOException e) {
+      throw new RestClientException("Unable to create a delete request", "DELETE", genericUrl, e);
+    }
 
     return this.sendRequest(request);
   }
 
-  private InputStream sendRequest(HttpRequest request) throws IOException {
+  private InputStream sendRequest(HttpRequest request) throws RestClientException {
     this.authenticate(request);
 
-    HttpResponse response = request.execute();
+    HttpResponse response;
+    try {
+      response = request.execute();
+    } catch (IOException e) {
+      throw new RestClientException(
+              "Unable to send the request to the API",
+              request.getRequestMethod(),
+              request.getUrl(),
+              e);
+    }
 
     int statusCode = response.getStatusCode();
 
     if (statusCode < 200 || statusCode >= 300) {
-      LOGGER.warn("HTTP error on the Bitbucket API v2. Status: {}, Body: {}", statusCode, response.parseAsString());
-      throw new RuntimeException("HTTP error on the Bitbucket API");
+      String responseContent = null;
+
+      try{
+        responseContent = response.parseAsString();
+      }catch (IOException parseException){
+        LOGGER.warn("Unable to parse the response's content. Verb: {}. Url: {}. Status code: {}",
+                request.getRequestMethod(),
+                request.getUrl(),
+                statusCode);
+        LOGGER.warn("Parsing error", parseException);
+      }
+
+      throw new RestClientException(
+              "Received an error code from the API.",
+              request.getRequestMethod(),
+              request.getUrl(),
+              statusCode,
+              responseContent);
     }
 
-    return response.getContent();
+    try {
+      return response.getContent();
+    } catch (IOException e) {
+      throw new RestClientException(
+              "Unable to get the response's content.",
+              request.getRequestMethod(),
+              request.getUrl(),
+              statusCode,
+              e);
+    }
   }
 
   private void authenticate(HttpRequest request) {

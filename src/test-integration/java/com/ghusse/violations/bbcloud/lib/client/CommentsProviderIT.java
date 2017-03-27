@@ -2,7 +2,9 @@ package com.ghusse.violations.bbcloud.lib.client;
 
 import com.ghusse.ci.violations.bbcloud.lib.CommentsProvider;
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.CommentPosition;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -106,7 +108,7 @@ public class CommentsProviderIT {
     }
 
     @Test
-    public void itShouldCreateASingleFileComment() throws IOException {
+    public void itShouldCreateASingleFileComment() throws IOException, RestClientException, ClientException {
         PullRequestDescription description = this.initOnPullRequest(2);
 
         List<Comment> commentsBefore = this.commentsProvider.getComments();
