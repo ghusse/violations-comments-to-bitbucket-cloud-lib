@@ -23,16 +23,16 @@ public class ClientV2 {
 
   private static final String ENDPOINT = "https://api.bitbucket.org/2.0";
 
-  @Inject
   private RestClient client;
-
-  @Inject
   private ObjectMapper mapper;
 
   private String userName;
   private String password;
 
-  public ClientV2() {
+  @Inject
+  public ClientV2(RestClient client, ObjectMapper mapper) {
+    this.client = client;
+    this.mapper = mapper;
   }
 
   public void setAuthentication(String userName, String password) {
