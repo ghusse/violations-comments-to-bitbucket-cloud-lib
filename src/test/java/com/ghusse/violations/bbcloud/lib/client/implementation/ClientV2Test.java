@@ -8,8 +8,8 @@ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientExceptio
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.PaginatedResponse;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -111,5 +112,43 @@ public class ClientV2Test {
 
     verify(this.restClient, times(1))
             .get("https://api.bitbucket.org/2.0/repositories/user/repo/pullrequests/theId/comments?page=2");
+  }
+
+  @Test
+  public void itShouldThrowARestClientExceptionAsClientException() throws RestClientException {
+    RestClientException cause = mock(RestClientException.class);
+    PullRequestDescription description = new PullRequestDescription("user", "repo", "pr");
+
+    when(this.restClient.get(any(String.class)))
+            .thenThrow(cause);
+
+    try {
+      this.target.listCommentsForPullRequest(description);
+      fail("Should have thrown an exception");
+    } catch (ClientException error) {
+      assertEquals(cause, error.getCause());
+      assertEquals("Error while requesting the api. Pull request in repo user/repo id: pr", error.getMessage());
+    }
+  }
+
+  @Test
+  public void itShouldRethrowParseExceptionAsClientException() throws IOException, RestClientException {
+    IOException cause = mock(IOException.class);
+    InputStream content = mock(InputStream.class);
+    PullRequestDescription description = new PullRequestDescription("user", "repo", "pr");
+
+    when(this.mapper.readValue(any(InputStream.class), any(TypeReference.class)))
+            .thenThrow(cause);
+    when(this.restClient.get(anyString()))
+            .thenReturn(this.content);
+
+    try {
+      this.target.listCommentsForPullRequest(description);
+      fail("Should have thrown an error");
+    } catch (ClientException error) {
+      assertEquals("Unable to parse the response. Pull request in repo user/repo id: pr. Response: ", error.getMessage());
+      assertEquals(cause, error.getCause());
+    }
+
   }
 }
