@@ -7,7 +7,7 @@ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

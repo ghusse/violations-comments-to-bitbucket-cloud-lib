@@ -4,7 +4,7 @@ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V1.Comment;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v1.Comment;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;

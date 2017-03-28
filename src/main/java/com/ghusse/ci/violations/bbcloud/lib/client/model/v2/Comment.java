@@ -1,4 +1,4 @@
-package com.ghusse.ci.violations.bbcloud.lib.client.model.V2;
+package com.ghusse.ci.violations.bbcloud.lib.client.model.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -18,6 +18,8 @@ public class Comment {
   private CommentPosition position;
 
   public Comment() {
+    // This class is created with Jackson, from JSON
+    // It needs a default constructor
   }
 
   public long getId() {
@@ -46,6 +48,8 @@ public class Comment {
     private String raw;
 
     public Content() {
+      // This class is created with Jackson, from JSON
+      // It needs a default constructor
     }
 
     public String getRaw() {

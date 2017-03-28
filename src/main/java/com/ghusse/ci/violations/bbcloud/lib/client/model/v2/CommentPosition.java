@@ -1,4 +1,4 @@
-package com.ghusse.ci.violations.bbcloud.lib.client.model.V2;
+package com.ghusse.ci.violations.bbcloud.lib.client.model.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,6 +15,8 @@ public class CommentPosition {
   private Integer to;
 
   public CommentPosition() {
+    // This class is created with Jackson, from JSON
+    // It needs a default constructor
   }
 
   public Integer getFrom() {

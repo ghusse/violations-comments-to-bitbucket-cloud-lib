@@ -5,7 +5,7 @@ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientExceptio
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

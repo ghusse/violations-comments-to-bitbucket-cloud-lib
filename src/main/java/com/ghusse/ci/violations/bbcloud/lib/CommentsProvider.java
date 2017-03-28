@@ -10,7 +10,6 @@ import se.bjurr.violations.comments.lib.model.ChangedFile;
 import se.bjurr.violations.comments.lib.model.Comment;
 import se.bjurr.violations.lib.model.Violation;
 import se.bjurr.violations.lib.util.Optional;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,11 +58,11 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   @Override
   public List<Comment> getComments() {
     try {
-      List<com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment> pullRequestComments = this.client.listCommentsForPullRequest(this.pullRequestDescription);
+      List<com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment> pullRequestComments = this.client.listCommentsForPullRequest(this.pullRequestDescription);
 
       List<Comment> result = new ArrayList<>(pullRequestComments.size());
 
-      for (com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment comment : pullRequestComments) {
+      for (com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment comment : pullRequestComments) {
         Comment exposedComment = new Comment(
                 Long.toString(comment.getId()),
                 comment.getContent(),
@@ -82,7 +81,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
 
   @Override
   public List<ChangedFile> getFiles() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -99,21 +98,21 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
 
   @Override
   public boolean shouldComment(ChangedFile changedFile, Integer integer) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean shouldCreateCommentWithAllSingleFileComments() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean shouldCreateSingleFileComment() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Optional<String> findCommentFormat(Violation violation) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 }

@@ -1,7 +1,7 @@
 package com.ghusse.ci.violations.bbcloud.lib.client.implementation;
 
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V1.Comment;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v1.Comment;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
