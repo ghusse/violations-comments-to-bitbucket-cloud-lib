@@ -25,13 +25,7 @@ public class ClientV2 {
 
   private RestClient client;
   private ObjectMapper mapper;
-
-<<<<<<< Updated upstream
-  private String userName;
-  private String password;
-
-=======
->>>>>>> Stashed changes
+  
   @Inject
   public ClientV2(RestClient client, ObjectMapper mapper) {
     this.client = client;
