@@ -9,7 +9,7 @@ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.PaginatedResponse;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;

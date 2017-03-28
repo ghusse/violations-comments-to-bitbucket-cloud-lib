@@ -24,6 +24,8 @@ public class PaginatedResponse<T> {
   private String next;
 
   public PaginatedResponse() {
+    // This class is created with Jackson, from JSON
+    // It needs a default constructor
   }
 
   public int getPageLength() {
@@ -35,7 +37,7 @@ public class PaginatedResponse<T> {
   }
 
   public List<T> getValues() {
-    return new ArrayList<T>(values);
+    return new ArrayList<>(values);
   }
 
   public int getPage() {

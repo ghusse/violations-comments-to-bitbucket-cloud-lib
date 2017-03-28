@@ -5,7 +5,7 @@ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.CommentPosition;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.CommentPosition;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.junit.Before;
@@ -118,11 +118,11 @@ public class CommentsProviderIT {
 
         this.commentsProvider.createSingleFileComment(file, 3, content);
 
-        List<com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment> commentsAfter = this.clientV2.listCommentsForPullRequest(description);
+        List<com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment> commentsAfter = this.clientV2.listCommentsForPullRequest(description);
 
         assertEquals(commentsBefore.size() + 1, commentsAfter.size());
 
-        com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment last = commentsAfter.get(commentsAfter.size() - 1);
+        com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment last = commentsAfter.get(commentsAfter.size() - 1);
         assertEquals(content, last.getContent());
 
         CommentPosition position = last.getPosition();

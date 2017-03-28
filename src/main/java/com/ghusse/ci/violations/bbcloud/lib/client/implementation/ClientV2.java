@@ -3,7 +3,7 @@ package com.ghusse.ci.violations.bbcloud.lib.client.implementation;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
-import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.PaginatedResponse;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
@@ -26,9 +26,12 @@ public class ClientV2 {
   private RestClient client;
   private ObjectMapper mapper;
 
+<<<<<<< Updated upstream
   private String userName;
   private String password;
 
+=======
+>>>>>>> Stashed changes
   @Inject
   public ClientV2(RestClient client, ObjectMapper mapper) {
     this.client = client;
@@ -44,6 +47,8 @@ public class ClientV2 {
   }
 
   private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws ClientException {
+    LOGGER.debug("Lists comments for page {}", page);
+
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments?page=%d",
             ENDPOINT,
@@ -52,7 +57,7 @@ public class ClientV2 {
             description.getId(),
             page);
 
-    InputStream content = null;
+    InputStream content;
     try {
       content = this.client.get(url);
     } catch (RestClientException e) {
@@ -60,17 +65,19 @@ public class ClientV2 {
     }
 
     TypeReference<PaginatedResponse<Comment>> type = new TypeReference<PaginatedResponse<Comment>>() {};
-    PaginatedResponse<Comment> pageComments = null;
+    PaginatedResponse<Comment> pageComments;
     try {
       pageComments = this.mapper.readValue(content, type);
     } catch (IOException e) {
       throw new ClientException("Unable to parse the response.", description, content, e);
     }
 
+    LOGGER.debug("Received {} comments", pageComments.getSize());
+
     if (pageComments.getPageLength() > page) {
       List<Comment> nextComments = listCommentsForPullRequestFromPage(description, page + 1);
 
-      ArrayList<Comment> result = new ArrayList<Comment>(pageComments.getValues().size() + nextComments.size());
+      ArrayList<Comment> result = new ArrayList<>(pageComments.getValues().size() + nextComments.size());
       result.addAll(pageComments.getValues());
       result.addAll(nextComments);
 

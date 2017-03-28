@@ -1,4 +1,4 @@
-package com.ghusse.ci.violations.bbcloud.lib.client.model.V1;
+package com.ghusse.ci.violations.bbcloud.lib.client.model.v1;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -28,6 +28,8 @@ public class Comment {
   private Integer lineTo;
 
   public Comment() {
+    // This class is created with Jackson, from JSON
+    // It needs a default constructor
   }
 
   public Comment(String content, String fileName, int lineNumber) {
