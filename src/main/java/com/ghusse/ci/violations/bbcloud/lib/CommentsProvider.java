@@ -21,12 +21,12 @@ import java.util.List;
 public class CommentsProvider implements se.bjurr.violations.comments.lib.model.CommentsProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CommentsProvider.class);
 
-  @Inject
   private Client client;
-
   private PullRequestDescription pullRequestDescription;
 
-  public CommentsProvider() {
+  @Inject
+  public CommentsProvider(Client client) {
+    this.client = client;
   }
 
   public void init(String userName, String password, PullRequestDescription description) {
@@ -39,8 +39,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
     try {
       this.client.publishPullRequestComment(this.pullRequestDescription, content);
     } catch (RestClientException e) {
-      LOG.error("Unable to publish a pull request comment", e);
-      throw new RuntimeException("Unable to publish a pull request comment", e);
+      throw new CommentsProviderError("Unable to publish a pull request comment", e, this.pullRequestDescription);
     }
   }
 
@@ -53,8 +52,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
               changedFile.getFilename(),
               lineNumber);
     } catch (RestClientException e) {
-      LOG.error("Unable to publish a line comment", e);
-      throw new RuntimeException(e);
+      throw new CommentsProviderError("Unable to publish a line comment", e, this.pullRequestDescription);
     }
   }
 
@@ -78,8 +76,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
 
       return result;
     } catch (ClientException e) {
-      LOG.error("Unable to get the list of comments associated to a pull request", e);
-      throw new RuntimeException(e);
+      throw new CommentsProviderError("Unable to get the list of comments associated to a pull request", e, this.pullRequestDescription);
     }
   }
 
@@ -96,7 +93,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
       }
     } catch (RestClientException e) {
       LOG.error("Unable to delete comments", e);
-      throw new RuntimeException("Unable to delete comments", e);
+      throw new CommentsProviderError("Unable to delete comments", e, this.pullRequestDescription);
     }
   }
 
