@@ -1,7 +1,7 @@
 package com.ghusse.ci.violations.bbcloud.lib;
 
 public class CommentsProviderError extends Error{
-  private PullRequestDescription description;
+  private final PullRequestDescription description;
 
   public CommentsProviderError(String message, Throwable error, PullRequestDescription description){
     super(message, error);

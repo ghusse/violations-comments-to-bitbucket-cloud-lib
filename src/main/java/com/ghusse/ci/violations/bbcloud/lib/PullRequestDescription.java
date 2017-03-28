@@ -1,8 +1,9 @@
 package com.ghusse.ci.violations.bbcloud.lib;
 
+import java.io.Serializable;
 import java.util.Locale;
 
-public class PullRequestDescription {
+public class PullRequestDescription implements Serializable {
   private final String userName;
   private final String repositorySlug;
   private final String id;
