@@ -15,6 +15,8 @@ public class CommentPosition {
   private Integer to;
 
   public CommentPosition() {
+    // This class is created with Jackson, from JSON
+    // It needs a default constructor
   }
 
   public Integer getFrom() {

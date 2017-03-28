@@ -18,6 +18,8 @@ public class Comment {
   private CommentPosition position;
 
   public Comment() {
+    // This class is created with Jackson, from JSON
+    // It needs a default constructor
   }
 
   public long getId() {

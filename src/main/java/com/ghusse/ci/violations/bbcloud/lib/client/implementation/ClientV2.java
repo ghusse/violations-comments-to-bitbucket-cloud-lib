@@ -25,7 +25,7 @@ public class ClientV2 {
 
   private RestClient client;
   private ObjectMapper mapper;
-  
+
   @Inject
   public ClientV2(RestClient client, ObjectMapper mapper) {
     this.client = client;
