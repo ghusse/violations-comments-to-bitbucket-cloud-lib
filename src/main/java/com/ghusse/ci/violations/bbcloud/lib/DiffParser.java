@@ -10,10 +10,6 @@ import java.util.Scanner;
  * Created by Ghusse on 31/03/2017.
  */
 public class DiffParser {
-  public DiffParser(){
-
-  }
-
   public List<String> getChangedFiles(InputStream diff){
     HashSet<String> changedFiles = new HashSet<>();
 
