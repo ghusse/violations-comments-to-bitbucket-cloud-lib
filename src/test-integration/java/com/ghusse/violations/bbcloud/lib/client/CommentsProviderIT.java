@@ -51,7 +51,7 @@ public class CommentsProviderIT {
 
     @Test
     public void listCommentsFromSimplePullRequest(){
-        this.initOnPullRequest(2);
+        this.initOnPullRequest(1);
 
         List<Comment> result = this.commentsProvider.getComments();
 
@@ -132,6 +132,17 @@ public class CommentsProviderIT {
         assertEquals("README.md", position.getPath());
 
         this.commentsProvider.removeComments(this.commentsProvider.getComments());
+    }
+
+    @Test
+    public void itShouldListAllModifiedFilesByAPullRequest(){
+        this.initOnPullRequest(3);
+
+        List<ChangedFile> changes = this.commentsProvider.getFiles();
+
+        assertEquals(2, changes.size());
+        assertEquals("README_renamed.md", changes.get(0).getFilename());
+        assertEquals("added.md", changes.get(1).getFilename());
     }
 
     private PullRequestDescription initOnPullRequest(long id){

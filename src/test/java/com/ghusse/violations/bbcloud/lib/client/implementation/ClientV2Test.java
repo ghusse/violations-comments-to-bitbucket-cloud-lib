@@ -149,6 +149,40 @@ public class ClientV2Test {
       assertEquals("Unable to parse the response. Pull request in repo user/repo id: pr. Response: ", error.getMessage());
       assertEquals(cause, error.getCause());
     }
+  }
 
+  @Test
+  public void itShouldCallTheAPIToGetTheDiffOfAPullRequest() throws RestClientException, ClientException {
+    PullRequestDescription pullRequest = new PullRequestDescription("user", "repo", "id");
+
+    InputStream result = mock(InputStream.class);
+
+    when(this.restClient.get(anyString()))
+            .thenReturn(result);
+
+    InputStream out = this.target.getDiff(pullRequest);
+
+    assertEquals(result, out);
+
+    verify(this.restClient, times(1))
+            .get("https://api.bitbucket.org/2.0/repositories/user/repo/pullrequests/id/diff");
+  }
+
+  @Test
+  public void itShouldRethrowAClientErrorWhenGettingTheDiff() throws RestClientException {
+    PullRequestDescription pullRequest = new PullRequestDescription("user", "repo", "id");
+
+    RestClientException error = mock(RestClientException.class);
+
+    when(this.restClient.get(anyString()))
+            .thenThrow(error);
+
+    try{
+      this.target.getDiff(pullRequest);
+      fail("Should have thrown an exception");
+    }catch(ClientException exception){
+      assertEquals(error, exception.getCause());
+      assertEquals("Error while requesting the api. Pull request in repo user/repo id: id", exception.getMessage());
+    }
   }
 }

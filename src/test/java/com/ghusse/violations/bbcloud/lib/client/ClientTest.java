@@ -14,13 +14,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClientTest {
@@ -34,11 +33,11 @@ public class ClientTest {
   private PullRequestDescription pullRequestDescription;
 
   @InjectMocks
-  private Client target = new Client();
+  private Client target;
 
   @Test
   public void listCommentsForPullRequestShouldProxyClient2() throws IOException, RestClientException, ClientException {
-    List<Comment> expectedResult = new ArrayList<Comment>();
+    List<Comment> expectedResult = new ArrayList<>();
 
     when(this.clientV2.listCommentsForPullRequest(this.pullRequestDescription))
             .thenReturn(expectedResult);
@@ -60,5 +59,18 @@ public class ClientTest {
 
     verify(this.clientV2, times(1))
             .setAuthentication(userName, password);
+  }
+
+  @Test
+  public void itShouldGetDiffs() throws ClientException {
+    InputStream result = mock(InputStream.class);
+    PullRequestDescription pullRequest = mock(PullRequestDescription.class);
+
+    when(this.clientV2.getDiff(pullRequest))
+            .thenReturn(result);
+
+    InputStream actualResult = this.target.getDiff(pullRequest);
+
+    assertEquals(result, actualResult);
   }
 }

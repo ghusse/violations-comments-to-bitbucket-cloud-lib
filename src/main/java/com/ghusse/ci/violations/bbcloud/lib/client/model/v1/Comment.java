@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import java.util.Locale;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize
 public class Comment {
@@ -56,5 +58,17 @@ public class Comment {
 
   public String getFile() {
     return file;
+  }
+
+  @Override
+  public String toString(){
+    return String.format(Locale.ENGLISH,
+            "%s id: %d, file: %s, line: %d-%d, content: %s",
+            super.toString(),
+            this.id,
+            this.file,
+            this.lineFrom,
+            this.lineTo,
+            this.content);
   }
 }

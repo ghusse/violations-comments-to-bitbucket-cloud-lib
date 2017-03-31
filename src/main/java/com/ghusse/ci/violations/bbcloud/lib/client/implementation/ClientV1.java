@@ -26,20 +26,20 @@ public class ClientV1 {
   public void publishLineComment(PullRequestDescription description,
                                  String content,
                                  String filename,
-                                 int lineNumber) throws RestClientException {
+                                 int lineNumber) throws ClientException {
     Comment comment = new Comment(content, filename, lineNumber);
 
     this.publishComment(description, comment);
   }
 
   public void publishPullRequestComment(PullRequestDescription description,
-                                        String content) throws RestClientException {
+                                        String content) throws ClientException {
     Comment comment = new Comment(content);
 
     this.publishComment(description, comment);
   }
 
-  public void deleteComment(PullRequestDescription description, long commentId) throws RestClientException {
+  public void deleteComment(PullRequestDescription description, long commentId) throws ClientException {
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments/%d",
             ENDPOINT,
@@ -48,10 +48,17 @@ public class ClientV1 {
             description.getId(),
             commentId);
 
-    this.client.delete(url);
+    try {
+      this.client.delete(url);
+    } catch (RestClientException e) {
+      throw new ClientException(
+              String.format(Locale.ENGLISH, "Unable to delete a comment: %d", commentId),
+              description,
+              e);
+    }
   }
 
-  public void publishComment(PullRequestDescription description, Comment comment) throws RestClientException {
+  public void publishComment(PullRequestDescription description, Comment comment) throws ClientException {
     LOGGER.debug("Publish comment {} on pull request {}", comment.getContent(), description);
     String url = String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/comments",
@@ -60,6 +67,13 @@ public class ClientV1 {
             description.getRepositorySlug(),
             description.getId());
 
-    this.client.post(url, comment);
+    try {
+      this.client.post(url, comment);
+    } catch (RestClientException e) {
+      throw new ClientException(
+              String.format("Unable to publish a comment: %s", comment),
+              description,
+              e);
+    }
   }
 }

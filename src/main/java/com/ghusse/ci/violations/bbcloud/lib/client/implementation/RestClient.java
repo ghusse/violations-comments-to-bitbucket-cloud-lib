@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 
 /**
  * Created by Ghusse on 19/03/2017.
@@ -78,6 +79,15 @@ public class RestClient {
     HttpResponse response;
     try {
       response = request.execute();
+    } catch(HttpResponseException httpError){
+      throw new RestClientException(
+              String.format(Locale.ENGLISH,
+                      "Received an error from the server: %d %s",
+                      httpError.getStatusCode(),
+                      httpError.getContent()),
+              request.getRequestMethod(),
+              request.getUrl(),
+              httpError);
     } catch (IOException e) {
       throw new RestClientException(
               "Unable to send the request to the API",
@@ -123,8 +133,15 @@ public class RestClient {
 
   private void authenticate(HttpRequest request) {
     if (this.userName != null && this.password != null) {
-      HttpHeaders headers = new HttpHeaders();
+      // By default, when following a redirection, the HttpRequest resets
+      // some headers, including the authentication header.
+      // Bitbucket uses redirection for some GET requests, and we need
+      // the redirected query to be authenticated as well.
+      // As the HttpRequest is final, this seems to be the best solution
+      HttpHeaders headers = new AuthenticatedRedirectHttpHeaders();
+
       headers.setBasicAuthentication(this.userName, this.password);
+      headers.setUserAgent(RestClient.class.getCanonicalName());
 
       request.setHeaders(headers);
     }
