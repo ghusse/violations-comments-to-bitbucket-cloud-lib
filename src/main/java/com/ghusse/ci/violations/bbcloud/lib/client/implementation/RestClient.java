@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
 
 /**
  * Created by Ghusse on 19/03/2017.
@@ -79,15 +78,6 @@ public class RestClient {
     HttpResponse response;
     try {
       response = request.execute();
-    } catch(HttpResponseException httpError){
-      throw new RestClientException(
-              String.format(Locale.ENGLISH,
-                      "Received an error from the server: %d %s",
-                      httpError.getStatusCode(),
-                      httpError.getContent()),
-              request.getRequestMethod(),
-              request.getUrl(),
-              httpError);
     } catch (IOException e) {
       throw new RestClientException(
               "Unable to send the request to the API",
