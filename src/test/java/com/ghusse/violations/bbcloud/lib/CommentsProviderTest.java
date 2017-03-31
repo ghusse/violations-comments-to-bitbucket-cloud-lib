@@ -176,4 +176,46 @@ public class CommentsProviderTest {
       assertEquals("Unable to get the diff for a pull request pullRequest: user:repoUser repo:repo id:42", thrown.getMessage());
     }
   }
+
+  @Test
+  public void itShouldCallTheClientToRemoveEachComment() throws ClientException {
+    List<se.bjurr.violations.comments.lib.model.Comment> comments = new ArrayList<>();
+    se.bjurr.violations.comments.lib.model.Comment comment1 = mock(se.bjurr.violations.comments.lib.model.Comment.class);
+    se.bjurr.violations.comments.lib.model.Comment comment2 = mock(se.bjurr.violations.comments.lib.model.Comment.class);
+    when(comment1.getIdentifier()).thenReturn("42");
+    when(comment2.getIdentifier()).thenReturn("2001");
+    comments.add(comment1);
+    comments.add(comment2);
+
+    this.target.removeComments(comments);
+
+    verify(this.client, times(1))
+            .deleteComment(this.description, 42l);
+    verify(this.client, times(1))
+            .deleteComment(this.description, 2001l);
+
+  }
+
+  @Test
+  public void itShouldRethrowExceptionWhenRemovingComments() throws ClientException {
+    List<se.bjurr.violations.comments.lib.model.Comment> comments = new ArrayList<>();
+    se.bjurr.violations.comments.lib.model.Comment comment = mock(se.bjurr.violations.comments.lib.model.Comment.class);
+
+    when(comment.getIdentifier()).thenReturn("42");
+    comments.add(comment);
+
+    ClientException error = mock(ClientException.class);
+
+    doThrow(error)
+            .when(this.client)
+            .deleteComment(this.description, 42);
+
+    try{
+      this.target.removeComments(comments);
+      fail("Should have throw an error");
+    }catch(CommentsProviderError thrown){
+      assertEquals(error, thrown.getCause());
+      assertTrue(thrown.getMessage(), thrown.getMessage().contains("Unable to delete comments"));
+    }
+  }
 }
