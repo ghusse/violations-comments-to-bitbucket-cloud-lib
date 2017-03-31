@@ -2,7 +2,6 @@ package com.ghusse.ci.violations.bbcloud.lib;
 
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +10,7 @@ import se.bjurr.violations.comments.lib.model.Comment;
 import se.bjurr.violations.lib.model.Violation;
 import se.bjurr.violations.lib.util.Optional;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,12 +20,15 @@ import java.util.List;
 public class CommentsProvider implements se.bjurr.violations.comments.lib.model.CommentsProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CommentsProvider.class);
 
-  private Client client;
+  private final DiffParser diffParser;
+  private final Client client;
+
   private PullRequestDescription pullRequestDescription;
 
   @Inject
-  public CommentsProvider(Client client) {
+  public CommentsProvider(Client client, DiffParser diffParser) {
     this.client = client;
+    this.diffParser = diffParser;
   }
 
   public void init(String userName, String password, PullRequestDescription description) {
@@ -37,7 +40,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   public void createCommentWithAllSingleFileComments(String content) {
     try {
       this.client.publishPullRequestComment(this.pullRequestDescription, content);
-    } catch (RestClientException e) {
+    } catch (ClientException e) {
       throw new CommentsProviderError("Unable to publish a pull request comment", e, this.pullRequestDescription);
     }
   }
@@ -50,7 +53,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
               content,
               changedFile.getFilename(),
               lineNumber);
-    } catch (RestClientException e) {
+    } catch (ClientException e) {
       throw new CommentsProviderError("Unable to publish a line comment", e, this.pullRequestDescription);
     }
   }
@@ -81,7 +84,25 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
 
   @Override
   public List<ChangedFile> getFiles() {
-    throw new UnsupportedOperationException();
+    try {
+      InputStream diff = this.client.getDiff(this.pullRequestDescription);
+
+      List<String> paths = this.diffParser.getChangedFiles(diff);
+
+      return getChangedFiles(paths);
+    } catch (ClientException e) {
+      throw new CommentsProviderError("Unable to get the diff for a pull request", e, this.pullRequestDescription);
+    }
+  }
+
+  private List<ChangedFile> getChangedFiles(List<String> filePaths) {
+    List<ChangedFile> result = new ArrayList<>(filePaths.size());
+
+    for(String file: filePaths){
+      result.add(new ChangedFile(file, new ArrayList<String>()));
+    }
+
+    return result;
   }
 
   @Override
@@ -90,7 +111,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
       for (Comment comment : list) {
         this.client.deleteComment(this.pullRequestDescription, Integer.parseInt(comment.getIdentifier()));
       }
-    } catch (RestClientException e) {
+    } catch (ClientException e) {
       LOG.error("Unable to delete comments", e);
       throw new CommentsProviderError("Unable to delete comments", e, this.pullRequestDescription);
     }

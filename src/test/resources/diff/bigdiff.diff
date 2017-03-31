@@ -1,0 +1,671 @@
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/CommentsProvider.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/CommentsProvider.java
+index 2faffd8..60855df 100644
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/CommentsProvider.java
++++ b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/CommentsProvider.java
+@@ -1,8 +1,6 @@
+ package com.ghusse.ci.violations.bbcloud.lib;
+
+ import com.ghusse.ci.violations.bbcloud.lib.client.Client;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
+ import com.google.inject.Inject;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -12,6 +10,7 @@ import se.bjurr.violations.lib.model.Violation;
+ import se.bjurr.violations.lib.util.Optional;
+ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
++import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.List;
+
+@@ -38,7 +37,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
+   public void createCommentWithAllSingleFileComments(String content) {
+     try {
+       this.client.publishPullRequestComment(this.pullRequestDescription, content);
+-    } catch (RestClientException e) {
++    } catch (IOException e) {
+       LOG.error("Unable to publish a pull request comment", e);
+       throw new RuntimeException("Unable to publish a pull request comment", e);
+     }
+@@ -52,7 +51,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
+               content,
+               changedFile.getFilename(),
+               lineNumber);
+-    } catch (RestClientException e) {
++    } catch (IOException e) {
+       LOG.error("Unable to publish a line comment", e);
+       throw new RuntimeException(e);
+     }
+@@ -77,7 +76,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
+       }
+
+       return result;
+-    } catch (ClientException e) {
++    } catch (IOException e) {
+       LOG.error("Unable to get the list of comments associated to a pull request", e);
+       throw new RuntimeException(e);
+     }
+@@ -94,7 +93,7 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
+       for (Comment comment : list) {
+         this.client.deleteComment(this.pullRequestDescription, Integer.parseInt(comment.getIdentifier()));
+       }
+-    } catch (RestClientException e) {
++    } catch (IOException e) {
+       LOG.error("Unable to delete comments", e);
+       throw new RuntimeException("Unable to delete comments", e);
+     }
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/Client.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/Client.java
+index 82a373f..36796a9 100644
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/Client.java
++++ b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/Client.java
+@@ -1,15 +1,14 @@
+ package com.ghusse.ci.violations.bbcloud.lib.client;
+
+ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+ import com.google.inject.Inject;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+
++import java.io.IOException;
+ import java.util.List;
+
+ /**
+@@ -32,24 +31,24 @@ public class Client {
+     this.clientV2.setAuthentication(userName, password);
+   }
+
+-  public List<Comment> listCommentsForPullRequest(PullRequestDescription pullRequestDescription) throws ClientException {
++  public List<Comment> listCommentsForPullRequest(PullRequestDescription pullRequestDescription) throws IOException {
+     return this.clientV2.listCommentsForPullRequest(pullRequestDescription);
+   }
+
+   public void publishLineComment(PullRequestDescription pullRequestDescription,
+                                  String content,
+                                  String fileName,
+-                                 int line) throws RestClientException {
++                                 int line) throws IOException {
+     this.clientV1.publishLineComment(pullRequestDescription, content, fileName, line);
+   }
+
+   public void publishPullRequestComment(PullRequestDescription pullRequestDescription,
+-                                        String content) throws RestClientException {
++                                        String content) throws IOException {
+     this.clientV1.publishPullRequestComment(pullRequestDescription, content);
+   }
+
+   public void deleteComment(PullRequestDescription pullRequestDescription,
+-                            long commentId) throws RestClientException {
++                            long commentId) throws IOException {
+     this.clientV1.deleteComment(pullRequestDescription, commentId);
+   }
+ }
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientException.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientException.java
+deleted file mode 100644
+index 364ca9c..0000000
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientException.java
++++ /dev/null
+@@ -1,41 +0,0 @@
+-package com.ghusse.ci.violations.bbcloud.lib.client.implementation;
+-
+-import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+-
+-import java.io.IOException;
+-import java.io.InputStream;
+-import java.util.Locale;
+-
+-/**
+- * Created by Ghusse on 27/03/2017.
+- */
+-public class ClientException extends Exception {
+-  public ClientException(Throwable cause){
+-    super(cause);
+-  }
+-
+-  public ClientException(String message, PullRequestDescription description, Throwable cause){
+-    super(buildMessage(message, description), cause);
+-  }
+-
+-  public ClientException(String message, PullRequestDescription description, InputStream response, IOException cause) {
+-    super(buildMessage(message, description, response), cause);
+-  }
+-
+-  private static String buildMessage(String message, PullRequestDescription description, InputStream response){
+-    return String.format("%s. Response: %s", buildMessage(message, description), convertStreamToString(response));
+-  }
+-
+-  private static String convertStreamToString(java.io.InputStream is) {
+-    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+-    return s.hasNext() ? s.next() : "";
+-  }
+-
+-  private static String buildMessage(String message, PullRequestDescription description){
+-    return String.format(Locale.ENGLISH, "%s Pull request in repo %s/%s id: %s",
+-            message,
+-            description.getUserName(),
+-            description.getRepositorySlug(),
+-            description.getId());
+-  }
+-}
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV1.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV1.java
+index 6792b72..1dad4f1 100644
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV1.java
++++ b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV1.java
+@@ -6,6 +6,7 @@ import com.google.inject.Inject;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+
++import java.io.IOException;
+ import java.util.Locale;
+
+ public class ClientV1 {
+@@ -25,20 +26,20 @@ public class ClientV1 {
+   public void publishLineComment(PullRequestDescription description,
+                                  String content,
+                                  String filename,
+-                                 int lineNumber) throws RestClientException {
++                                 int lineNumber) throws IOException {
+     Comment comment = new Comment(content, filename, lineNumber);
+
+     this.publishComment(description, comment);
+   }
+
+   public void publishPullRequestComment(PullRequestDescription description,
+-                                        String content) throws RestClientException {
++                                        String content) throws IOException {
+     Comment comment = new Comment(content);
+
+     this.publishComment(description, comment);
+   }
+
+-  public void deleteComment(PullRequestDescription description, long commentId) throws RestClientException {
++  public void deleteComment(PullRequestDescription description, long commentId) throws IOException {
+     String url = String.format(Locale.ENGLISH,
+             "%s/repositories/%s/%s/pullrequests/%s/comments/%d",
+             ENDPOINT,
+@@ -50,7 +51,7 @@ public class ClientV1 {
+     this.client.delete(url);
+   }
+
+-  public void publishComment(PullRequestDescription description, Comment comment) throws RestClientException {
++  public void publishComment(PullRequestDescription description, Comment comment) throws IOException {
+     LOGGER.debug("Publish comment {} on pull request {}", comment.getContent(), description);
+     String url = String.format(Locale.ENGLISH,
+             "%s/repositories/%s/%s/pullrequests/%s/comments",
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV2.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV2.java
+index d5b0dc8..d7348c4 100644
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV2.java
++++ b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/ClientV2.java
+@@ -39,11 +39,11 @@ public class ClientV2 {
+     this.client.setAuthentication(userName, password);
+   }
+
+-  public List<Comment> listCommentsForPullRequest(PullRequestDescription description) throws ClientException {
++  public List<Comment> listCommentsForPullRequest(PullRequestDescription description) throws IOException {
+     return listCommentsForPullRequestFromPage(description, 1);
+   }
+
+-  private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws ClientException {
++  private List<Comment> listCommentsForPullRequestFromPage(PullRequestDescription description, int page) throws IOException {
+     String url = String.format(Locale.ENGLISH,
+             "%s/repositories/%s/%s/pullrequests/%s/comments?page=%d",
+             ENDPOINT,
+@@ -52,20 +52,10 @@ public class ClientV2 {
+             description.getId(),
+             page);
+
+-    InputStream content = null;
+-    try {
+-      content = this.client.get(url);
+-    } catch (RestClientException e) {
+-      throw new ClientException("Error while requesting the api.", description, e);
+-    }
++    InputStream content = this.client.get(url);
+
+     TypeReference<PaginatedResponse<Comment>> type = new TypeReference<PaginatedResponse<Comment>>() {};
+-    PaginatedResponse<Comment> pageComments = null;
+-    try {
+-      pageComments = this.mapper.readValue(content, type);
+-    } catch (IOException e) {
+-      throw new ClientException("Unable to parse the response.", description, content, e);
+-    }
++    PaginatedResponse<Comment> pageComments = this.mapper.readValue(content, type);
+
+     if (pageComments.getPageLength() > page) {
+       List<Comment> nextComments = listCommentsForPullRequestFromPage(description, page + 1);
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClient.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClient.java
+index 129dce4..0d759b2 100644
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClient.java
++++ b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClient.java
+@@ -32,93 +32,39 @@ public class RestClient {
+     this.requestFactory = this.transport.createRequestFactory();
+   }
+
+-  public InputStream get(String url) throws RestClientException {
+-    HttpRequest request;
+-    GenericUrl genericUrl = new GenericUrl(url);
+-
+-    try {
+-      request = this.requestFactory.buildGetRequest(genericUrl);
+-    } catch (IOException e) {
+-      throw new RestClientException("Unable to create a get request", "GET", genericUrl, e);
+-    }
++  public InputStream get(String url) throws IOException {
++    HttpRequest request = this.requestFactory.buildGetRequest(new GenericUrl(url));
+
+     return this.sendRequest(request);
+   }
+
+-  public InputStream post(String url, Object data) throws RestClientException {
++  public InputStream post(String url, Object data) throws IOException {
+     JsonHttpContent content = contentFactory.create(data);
+-    GenericUrl genericUrl = new GenericUrl(url);
+-    HttpRequest request;
+
+-    try {
+-      request = this.requestFactory.buildPostRequest(genericUrl, content);
+-    } catch (IOException e) {
+-      throw new RestClientException("Unable to create a post request", "POST", genericUrl, e);
+-    }
++    HttpRequest request = this.requestFactory.buildPostRequest(new GenericUrl(url), content);
+
+     return this.sendRequest(request);
+   }
+
+-  public InputStream delete(String url) throws RestClientException {
+-    HttpRequest request;
+-    GenericUrl genericUrl = new GenericUrl(url);
+-
+-    try {
+-      request = this.requestFactory.buildDeleteRequest(genericUrl);
+-    } catch (IOException e) {
+-      throw new RestClientException("Unable to create a delete request", "DELETE", genericUrl, e);
+-    }
++  public InputStream delete(String url) throws IOException {
++    HttpRequest request = this.requestFactory.buildDeleteRequest(new GenericUrl(url));
+
+     return this.sendRequest(request);
+   }
+
+-  private InputStream sendRequest(HttpRequest request) throws RestClientException {
++  private InputStream sendRequest(HttpRequest request) throws IOException {
+     this.authenticate(request);
+
+-    HttpResponse response;
+-    try {
+-      response = request.execute();
+-    } catch (IOException e) {
+-      throw new RestClientException(
+-              "Unable to send the request to the API",
+-              request.getRequestMethod(),
+-              request.getUrl(),
+-              e);
+-    }
++    HttpResponse response = request.execute();
+
+     int statusCode = response.getStatusCode();
+
+     if (statusCode < 200 || statusCode >= 300) {
+-      String responseContent = null;
+-
+-      try{
+-        responseContent = response.parseAsString();
+-      }catch (IOException parseException){
+-        LOGGER.warn("Unable to parse the response's content. Verb: {}. Url: {}. Status code: {}",
+-                request.getRequestMethod(),
+-                request.getUrl(),
+-                statusCode);
+-        LOGGER.warn("Parsing error", parseException);
+-      }
+-
+-      throw new RestClientException(
+-              "Received an error code from the API.",
+-              request.getRequestMethod(),
+-              request.getUrl(),
+-              statusCode,
+-              responseContent);
++      LOGGER.warn("HTTP error on the Bitbucket API v2. Status: {}, Body: {}", statusCode, response.parseAsString());
++      throw new RuntimeException("HTTP error on the Bitbucket API");
+     }
+
+-    try {
+-      return response.getContent();
+-    } catch (IOException e) {
+-      throw new RestClientException(
+-              "Unable to get the response's content.",
+-              request.getRequestMethod(),
+-              request.getUrl(),
+-              statusCode,
+-              e);
+-    }
++    return response.getContent();
+   }
+
+   private void authenticate(HttpRequest request) {
+diff --git a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClientException.java b/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClientException.java
+deleted file mode 100644
+index 9de649d..0000000
+--- a/src/main/java/com/ghusse/ci/violations/bbcloud/lib/client/implementation/RestClientException.java
++++ /dev/null
+@@ -1,34 +0,0 @@
+-package com.ghusse.ci.violations.bbcloud.lib.client.implementation;
+-
+-import com.google.api.client.http.GenericUrl;
+-
+-import java.util.Locale;
+-
+-/**
+- * Created by Ghusse on 26/03/2017.
+- */
+-public class RestClientException extends Exception {
+-  public RestClientException(String message, String verb, GenericUrl url, int httpCode, String response){
+-    super(buildMessage(message, verb, url, httpCode, response));
+-  }
+-
+-  public RestClientException(String message, String verb, GenericUrl url, int httpCode, Throwable cause){
+-    super(buildMessage(message, verb, url, httpCode, null), cause);
+-  }
+-
+-  public RestClientException(String message, String verb, GenericUrl url, Throwable cause) {
+-    super(buildMessage(message, verb, url), cause);
+-  }
+-
+-  private static String buildMessage(String message, String verb, GenericUrl url, int httpCode, String response){
+-    return String.format(Locale.ENGLISH, "%s %s", buildMessage(message, verb, url), buildMessage(httpCode, response));
+-  }
+-
+-  private static String buildMessage(String message, String verb, GenericUrl url){
+-    return String.format(Locale.ENGLISH, "%s %s %s.", message, verb, url);
+-  }
+-
+-  private static String buildMessage(int httpCode, String response){
+-    return String.format(Locale.ENGLISH, "Received code %d: %s", httpCode, response);
+-  }
+-}
+diff --git a/src/test-integration/java/com/ghusse/violations/bbcloud/lib/client/CommentsProviderIT.java b/src/test-integration/java/com/ghusse/violations/bbcloud/lib/client/CommentsProviderIT.java
+index 1cdfdc7..6ac3f34 100644
+--- a/src/test-integration/java/com/ghusse/violations/bbcloud/lib/client/CommentsProviderIT.java
++++ b/src/test-integration/java/com/ghusse/violations/bbcloud/lib/client/CommentsProviderIT.java
+@@ -2,9 +2,7 @@ package com.ghusse.violations.bbcloud.lib.client;
+
+ import com.ghusse.ci.violations.bbcloud.lib.CommentsProvider;
+ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.CommentPosition;
+ import com.google.inject.Guice;
+ import com.google.inject.Injector;
+@@ -108,7 +106,7 @@ public class CommentsProviderIT {
+     }
+
+     @Test
+-    public void itShouldCreateASingleFileComment() throws IOException, RestClientException, ClientException {
++    public void itShouldCreateASingleFileComment() throws IOException {
+         PullRequestDescription description = this.initOnPullRequest(2);
+
+         List<Comment> commentsBefore = this.commentsProvider.getComments();
+diff --git a/src/test/java/com/ghusse/violations/bbcloud/lib/client/ClientTest.java b/src/test/java/com/ghusse/violations/bbcloud/lib/client/ClientTest.java
+index 876ffdf..c591fe6 100644
+--- a/src/test/java/com/ghusse/violations/bbcloud/lib/client/ClientTest.java
++++ b/src/test/java/com/ghusse/violations/bbcloud/lib/client/ClientTest.java
+@@ -2,10 +2,8 @@ package com.ghusse.violations.bbcloud.lib.client;
+
+ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+ import com.ghusse.ci.violations.bbcloud.lib.client.Client;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
+@@ -37,7 +35,7 @@ public class ClientTest {
+   private Client target = new Client();
+
+   @Test
+-  public void listCommentsForPullRequestShouldProxyClient2() throws IOException, RestClientException, ClientException {
++  public void listCommentsForPullRequestShouldProxyClient2() throws IOException {
+     List<Comment> expectedResult = new ArrayList<Comment>();
+
+     when(this.clientV2.listCommentsForPullRequest(this.pullRequestDescription))
+diff --git a/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/ClientV2Test.java b/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/ClientV2Test.java
+index 53fcdcf..ebe1773 100644
+--- a/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/ClientV2Test.java
++++ b/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/ClientV2Test.java
+@@ -4,10 +4,8 @@ package com.ghusse.violations.bbcloud.lib.client.implementation;
+ import com.fasterxml.jackson.core.type.TypeReference;
+ import com.fasterxml.jackson.databind.ObjectMapper;
+ import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
+ import com.ghusse.ci.violations.bbcloud.lib.client.model.V2.Comment;
+ import com.ghusse.ci.violations.bbcloud.lib.client.model.PaginatedResponse;
+ import org.junit.Test;
+@@ -50,7 +48,7 @@ public class ClientV2Test {
+   }
+
+   @Test
+-  public void itShouldListComments() throws IOException, ClientException, RestClientException {
++  public void itShouldListComments() throws IOException {
+     PaginatedResponse<Comment> response = mock(PaginatedResponse.class);
+
+     when(this.mapper.readValue(any(InputStream.class), any(TypeReference.class)))
+@@ -73,7 +71,7 @@ public class ClientV2Test {
+   }
+
+   @Test
+-  public void itShouldCombineMultiplePagesResults() throws IOException, RestClientException, ClientException {
++  public void itShouldCombineMultiplePagesResults() throws IOException {
+     Comment firstComment = mock(Comment.class);
+     Comment secondComment = mock(Comment.class);
+
+diff --git a/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/RestClientTest.java b/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/RestClientTest.java
+index 425cc11..835bc7d 100644
+--- a/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/RestClientTest.java
++++ b/src/test/java/com/ghusse/violations/bbcloud/lib/client/implementation/RestClientTest.java
+@@ -3,7 +3,6 @@ package com.ghusse.violations.bbcloud.lib.client.implementation;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContent;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContentFactory;
+ import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
+-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
+ import com.google.api.client.http.*;
+ import com.google.api.client.http.javanet.NetHttpTransport;
+ import org.junit.Assert;
+@@ -16,11 +15,8 @@ import org.mockito.junit.MockitoJUnitRunner;
+
+ import java.io.IOException;
+ import java.io.InputStream;
+-import java.util.Locale;
+
+ import static org.junit.Assert.assertEquals;
+-import static org.junit.Assert.assertNull;
+-import static org.junit.Assert.fail;
+ import static org.mockito.ArgumentMatchers.any;
+ import static org.mockito.Mockito.*;
+
+@@ -75,7 +71,7 @@ public class RestClientTest {
+   }
+
+   @Test
+-  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException, RestClientException {
++  public void itShouldExecuteAnAuthenticatedHttpCall() throws IOException {
+     when(this.response.getStatusCode())
+             .thenReturn(200);
+
+@@ -93,7 +89,7 @@ public class RestClientTest {
+   }
+
+   @Test
+-  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException, RestClientException {
++  public void itShouldNotSetTheHeadersIfAuthenticationIsNotSet() throws IOException {
+     when(this.response.getStatusCode())
+             .thenReturn(200);
+
+@@ -104,7 +100,7 @@ public class RestClientTest {
+     target.get(URL);
+     verify(this.request, never()).setHeaders(any(HttpHeaders.class));
+
+-    target.setAuthentication(USERNAME, null);
++    target.setAuthentication(USERNAME, null);target.get(URL);
+     target.get(URL);
+     verify(this.request, never()).setHeaders(any(HttpHeaders.class));
+   }
+@@ -118,7 +114,7 @@ public class RestClientTest {
+   }
+
+   @Test
+-  public void itShouldSendAnAuthenticatedPostRequest() throws IOException, RestClientException {
++  public void itShouldSendAnAuthenticatedPostRequest() throws IOException {
+     Object data = new Object();
+
+     JsonHttpContent jsonContent = mock(JsonHttpContent.class);
+@@ -145,7 +141,7 @@ public class RestClientTest {
+   }
+
+   @Test
+-  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException, RestClientException {
++  public void itShouldSendAnAuthenticatedDeleteHttpRequest() throws IOException {
+     when(this.response.getStatusCode())
+             .thenReturn(200);
+
+@@ -176,130 +172,11 @@ public class RestClientTest {
+     when(this.response.getStatusCode())
+             .thenReturn(httpCode);
+
+-    when(this.request.getRequestMethod()).thenReturn("VERB");
+-    when(this.request.getUrl()).thenReturn(new GenericUrl(URL));
+-    when(this.response.parseAsString()).thenReturn("RESPONSE");
+-
+     try {
+       this.target.delete(URL);
+       Assert.fail("Should have thrown an exception");
+-    }catch (RestClientException e){
+-      assertEquals(
+-              String.format(Locale.ENGLISH, "Received an error code from the API. VERB %s. Received code %d: RESPONSE", URL, httpCode),
+-              e.getMessage());
+-    }
+-  }
+-
+-  @Test
+-  public void itShouldRethrowARestClientExceptionOnGet() throws IOException {
+-    IOException cause = new IOException("message");
+-    when(this.requestFactory.buildGetRequest(any(GenericUrl.class)))
+-            .thenThrow(cause);
+-
+-    try{
+-      this.target.get(URL);
+-      fail("Should have thrown an exception");
+-    }catch (RestClientException error){
+-      assertEquals("Unable to create a get request GET " + URL + ".", error.getMessage());
+-      assertEquals(cause, error.getCause());
+-    }
+-  }
+-
+-  @Test
+-  public void itShouldRethrowARestClientExceptionOnPost() throws IOException {
+-    IOException cause = new IOException("message");
+-    when(this.requestFactory.buildPostRequest(any(GenericUrl.class), (HttpContent) isNull()))
+-            .thenThrow(cause);
+-
+-    try{
+-      this.target.post(URL, null);
+-      fail("Should have thrown an exception");
+-    }catch (RestClientException error){
+-      assertEquals("Unable to create a post request POST " + URL + ".", error.getMessage());
+-      assertEquals(cause, error.getCause());
+-    }
+-  }
+-
+-  @Test
+-  public void itShouldRethrowARestClientExceptionOnDelete() throws IOException {
+-    IOException cause = new IOException("message");
+-    when(this.requestFactory.buildDeleteRequest(any(GenericUrl.class)))
+-            .thenThrow(cause);
+-
+-    try{
+-      this.target.delete(URL);
+-      fail("Should have thrown an exception");
+-    }catch (RestClientException error){
+-      assertEquals("Unable to create a delete request DELETE " + URL + ".", error.getMessage());
+-      assertEquals(cause, error.getCause());
+-    }
+-  }
+-
+-  @Test
+-  public void itShouldThrowRequestExceptionAsRestClientException() throws IOException {
+-    IOException cause = new IOException("Request error");
+-
+-    when(this.request.execute())
+-            .thenThrow(cause);
+-
+-    when(this.request.getRequestMethod())
+-            .thenReturn("FOO");
+-
+-    when(this.request.getUrl())
+-            .thenReturn(new GenericUrl(URL));
+-
+-    try{
+-      this.target.get(URL);
+-      fail("Should have thrown an exception");
+-    }catch (RestClientException error){
+-      assertEquals(cause, error.getCause());
+-      assertEquals("Unable to send the request to the API FOO " + URL + ".", error.getMessage());
+-    }
+-  }
+-
+-  @Test
+-  public void itShouldThrowAnErrorEvenInCaseOfParseError() throws IOException {
+-    IOException cause = new IOException("parse exception");
+-
+-    when(this.response.parseAsString())
+-            .thenThrow(cause);
+-    when(this.response.getStatusCode())
+-            .thenReturn(404);
+-    when(this.request.getRequestMethod())
+-            .thenReturn("FOO");
+-    when(this.request.getUrl())
+-            .thenReturn(new GenericUrl(URL));
+-
+-    try{
+-      this.target.get(URL);
+-      fail("Should have thrown an exception");
+-    }catch(RestClientException error){
+-      assertNull(error.getCause());
+-      assertEquals("Received an error code from the API. FOO " + URL + ". Received code 404: null", error.getMessage());
++    }catch (RuntimeException e){
++      assertEquals("HTTP error on the Bitbucket API", e.getMessage());
+     }
+   }
+-
+-  @Test
+-  public void itShouldThrowContentExceptionAsRestClientException() throws IOException {
+-    IOException cause = new IOException("Content error");
+-
+-    when(this.response.getContent())
+-            .thenThrow(cause);
+-    when(this.response.getStatusCode())
+-            .thenReturn(200);
+-
+-    when(this.request.getRequestMethod())
+-            .thenReturn("FOO");
+-    when(this.request.getUrl())
+-            .thenReturn(new GenericUrl(URL));
+-
+-    try{
+-      this.target.get(URL);
+-      fail("Should have thrown an exception");
+-    }catch (RestClientException error){
+-      assertEquals(cause, error.getCause());
+-      assertEquals("Unable to get the response's content. FOO " + URL + ". Received code 200: null", error.getMessage());
+-    }
+-  }
+-
+ }

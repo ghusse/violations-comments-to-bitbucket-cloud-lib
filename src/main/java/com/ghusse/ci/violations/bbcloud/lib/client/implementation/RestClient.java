@@ -123,8 +123,15 @@ public class RestClient {
 
   private void authenticate(HttpRequest request) {
     if (this.userName != null && this.password != null) {
-      HttpHeaders headers = new HttpHeaders();
+      // By default, when following a redirection, the HttpRequest resets
+      // some headers, including the authentication header.
+      // Bitbucket uses redirection for some GET requests, and we need
+      // the redirected query to be authenticated as well.
+      // As the HttpRequest is final, this seems to be the best solution
+      HttpHeaders headers = new AuthenticatedRedirectHttpHeaders();
+
       headers.setBasicAuthentication(this.userName, this.password);
+      headers.setUserAgent(RestClient.class.getCanonicalName());
 
       request.setHeaders(headers);
     }

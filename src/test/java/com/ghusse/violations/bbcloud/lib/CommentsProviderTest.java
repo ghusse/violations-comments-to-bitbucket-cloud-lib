@@ -3,10 +3,10 @@ package com.ghusse.violations.bbcloud.lib;
 
 import com.ghusse.ci.violations.bbcloud.lib.CommentsProvider;
 import com.ghusse.ci.violations.bbcloud.lib.CommentsProviderError;
+import com.ghusse.ci.violations.bbcloud.lib.DiffParser;
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
-import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,17 +16,23 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import se.bjurr.violations.comments.lib.model.ChangedFile;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CommentsProviderTest {
   @Mock
   private Client client;
+
+  @Mock
+  private DiffParser parser;
+
+  @Mock
+  private InputStream inputStream;
 
   @InjectMocks
   private CommentsProvider target;
@@ -40,7 +46,7 @@ public class CommentsProviderTest {
   }
 
   @Test
-  public void itShouldUseTheClientToPublishAComment() throws RestClientException {
+  public void itShouldUseTheClientToPublishAComment() throws ClientException {
     String comment = "comment";
 
     this.target.createCommentWithAllSingleFileComments(comment);
@@ -50,8 +56,8 @@ public class CommentsProviderTest {
   }
 
   @Test
-  public void itShouldRethrowAnErrorWhenPublishingAComment() throws RestClientException {
-    RestClientException error = mock(RestClientException.class);
+  public void itShouldRethrowAnErrorWhenPublishingAComment() throws ClientException {
+    ClientException error = mock(ClientException.class);
     doThrow(error).when(this.client).publishPullRequestComment(this.description, "foo");
 
     try{
@@ -65,7 +71,7 @@ public class CommentsProviderTest {
   }
 
   @Test
-  public void itShouldCallTheClientToCreateAFileComment() throws RestClientException {
+  public void itShouldCallTheClientToCreateAFileComment() throws ClientException {
     ChangedFile file = new ChangedFile("foo.txt", new ArrayList<String>());
 
     this.target.createSingleFileComment(file, 42, "comment");
@@ -75,8 +81,8 @@ public class CommentsProviderTest {
   }
 
   @Test
-  public void itShouldRethrowAnErrorWhenCreatingAFileComment() throws RestClientException {
-    RestClientException error = mock(RestClientException.class);
+  public void itShouldRethrowAnErrorWhenCreatingAFileComment() throws ClientException {
+    ClientException error = mock(ClientException.class);
     ChangedFile file = new ChangedFile("foo.txt", new ArrayList<String>());
 
     doThrow(error).when(this.client).publishLineComment(this.description, "comment", "foo.txt", 42);
@@ -134,6 +140,40 @@ public class CommentsProviderTest {
       assertEquals(error, thrown.getCause());
       assertEquals(this.description, thrown.getDescription());
       assertEquals("Unable to get the list of comments associated to a pull request pullRequest: user:repoUser repo:repo id:42", thrown.getMessage());
+    }
+  }
+
+  @Test
+  public void itShouldReturnTheListOfModifiedFiles() throws ClientException {
+    List<String> changed = new ArrayList<>();
+    changed.add("foo/bar.md");
+
+    when(this.parser.getChangedFiles(this.inputStream))
+            .thenReturn(changed);
+
+    when(this.client.getDiff(this.description))
+            .thenReturn(this.inputStream);
+
+    List<ChangedFile> result = this.target.getFiles();
+
+    assertEquals(1, result.size());
+    assertEquals("foo/bar.md", result.get(0).getFilename());
+    assertNotNull(result.get(0).getSpecifics());
+  }
+
+  @Test
+  public void itShouldRethrowAnExceptionWhenGettingTheDiff() throws ClientException {
+    ClientException error = mock(ClientException.class);
+
+    when(this.client.getDiff(this.description))
+            .thenThrow(error);
+
+    try{
+      this.target.getFiles();
+      fail("Should have thrown an error");
+    }catch (CommentsProviderError thrown){
+      assertEquals(error, thrown.getCause());
+      assertEquals("Unable to get the diff for a pull request pullRequest: user:repoUser repo:repo id:42", thrown.getMessage());
     }
   }
 }

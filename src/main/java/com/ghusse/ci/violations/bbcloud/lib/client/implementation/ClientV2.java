@@ -23,8 +23,8 @@ public class ClientV2 {
 
   private static final String ENDPOINT = "https://api.bitbucket.org/2.0";
 
-  private RestClient client;
-  private ObjectMapper mapper;
+  private final RestClient client;
+  private final ObjectMapper mapper;
 
   @Inject
   public ClientV2(RestClient client, ObjectMapper mapper) {
@@ -79,5 +79,22 @@ public class ClientV2 {
     }
 
     return pageComments.getValues();
+  }
+
+  public InputStream getDiff(PullRequestDescription pullRequest) throws ClientException {
+    LOGGER.debug("Lists modified files");
+
+    java.lang.String url = java.lang.String.format(Locale.ENGLISH,
+            "%s/repositories/%s/%s/pullrequests/%s/diff",
+            ENDPOINT,
+            pullRequest.getUserName(),
+            pullRequest.getRepositorySlug(),
+            pullRequest.getId());
+
+    try {
+      return this.client.get(url);
+    } catch (RestClientException e) {
+      throw new ClientException("Error while requesting the api.", pullRequest, e);
+    }
   }
 }
