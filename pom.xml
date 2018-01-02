@@ -13,6 +13,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
             <plugin>
@@ -63,7 +70,7 @@
         <dependency>
             <groupId>se.bjurr.violations</groupId>
             <artifactId>violation-comments-lib</artifactId>
-            <version>1.29</version>
+            <version>1.52</version>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
@@ -79,6 +86,11 @@
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client</artifactId>
             <version>1.22.0</version>
+        </dependency>
+        <dependency>
+          <groupId>io.reflectoring.diffparser</groupId>
+          <artifactId>diffparser</artifactId>
+          <version>1.4</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
