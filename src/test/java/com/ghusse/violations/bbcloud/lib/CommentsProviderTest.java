@@ -5,9 +5,18 @@ import com.ghusse.ci.violations.bbcloud.lib.CommentsProvider;
 import com.ghusse.ci.violations.bbcloud.lib.CommentsProviderError;
 import com.ghusse.ci.violations.bbcloud.lib.DiffParser;
 import com.ghusse.ci.violations.bbcloud.lib.PullRequestDescription;
+import com.ghusse.ci.violations.bbcloud.lib.ViolationCommentsToBitbucketCloudApi;
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
 import com.ghusse.ci.violations.bbcloud.lib.client.model.v2.Comment;
+
+import io.reflectoring.diffparser.api.UnifiedDiffParser;
+import io.reflectoring.diffparser.api.model.Diff;
+import io.reflectoring.diffparser.api.model.Hunk;
+import io.reflectoring.diffparser.api.model.Range;
+import io.reflectoring.diffparser.api.model.Line;
+import io.reflectoring.diffparser.api.model.Line.LineType;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,17 +41,63 @@ public class CommentsProviderTest {
   private DiffParser parser;
 
   @Mock
+  private UnifiedDiffParser uniParser;
+
+  @Mock
   private InputStream inputStream;
+
+  @Mock
+  private ViolationCommentsToBitbucketCloudApi api;
 
   @InjectMocks
   private CommentsProvider target;
 
   private PullRequestDescription description;
 
+  private List<Diff> diffs;
+
   @Before
   public void init(){
     this.description = new PullRequestDescription("repoUser", "repo", "42");
-    this.target.init("user", "pass", this.description);
+    this.target.init("user", "pass", this.api, this.description);
+
+    this.diffs = new ArrayList<>();
+
+
+    List<Line> lines1 = new ArrayList<>();
+    lines1.add(new Line(LineType.NEUTRAL, "line2"));
+    lines1.add(new Line(LineType.FROM, "line3"));
+    lines1.add(new Line(LineType.TO, "new_line3"));
+    lines1.add(new Line(LineType.NEUTRAL, "line4"));
+    lines1.add(new Line(LineType.FROM, "line5"));
+    lines1.add(new Line(LineType.TO, "new_line5"));
+    lines1.add(new Line(LineType.FROM, "line6"));
+    lines1.add(new Line(LineType.TO, "new_line6"));
+    lines1.add(new Line(LineType.NEUTRAL, "line7"));
+    Hunk hunk1 = new Hunk();
+    hunk1.setToFileRange(new Range(2,6));
+    hunk1.setLines(lines1);
+
+    List<Line> lines2 = new ArrayList<>();
+    lines2.add(new Line(LineType.FROM, "line10"));
+    lines2.add(new Line(LineType.TO, "new_line10"));
+    lines2.add(new Line(LineType.NEUTRAL, "line11"));
+    lines2.add(new Line(LineType.FROM, "line12"));
+    lines2.add(new Line(LineType.TO, "new_line12"));
+    Hunk hunk2 = new Hunk();
+    hunk2.setToFileRange(new Range(10,12));
+    hunk2.setLines(lines2);
+
+    List<Hunk> hunks = new ArrayList<Hunk>();
+    hunks.add(hunk1);
+    hunks.add(hunk2);
+
+    Diff diff = new Diff();
+    diff.setFromFileName("a/dir/foo");
+    diff.setToFileName("b/dir/bar");
+    diff.setHunks(hunks);
+
+    this.diffs.add(diff);
   }
 
   @Test
@@ -217,5 +272,72 @@ public class CommentsProviderTest {
       assertEquals(error, thrown.getCause());
       assertTrue(thrown.getMessage(), thrown.getMessage().contains("Unable to delete comments"));
     }
+  }
+
+  @Test
+  public void itShouldCommentAlways() throws ClientException {
+    when(this.api.getCommentOnlyChangedContent()).thenReturn(false);
+    ChangedFile changedFile = new ChangedFile("foo", new ArrayList<String>());
+    Integer changedLine = 1;
+
+    assertTrue(this.target.shouldComment(changedFile, changedLine));
+  }
+
+  @Test
+  public void itShouldNotCommentIfDiffIsEmpty() throws ClientException {
+    when(this.api.getCommentOnlyChangedContent()).thenReturn(true);
+    when(this.api.getCommentOnlyChangedContentContext()).thenReturn(0);
+    when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
+    when(this.uniParser.parse(this.inputStream)).thenReturn(new ArrayList<Diff>());
+
+    ChangedFile changedFile = new ChangedFile("dir/foo", new ArrayList<String>());
+    Integer changedLine = 1;
+    assertFalse(this.target.shouldComment(changedFile, changedLine));
+  }
+
+  @Test
+  public void itShouldNotCommentOnClientError() throws ClientException {
+    ClientException error = mock(ClientException.class);
+    when(this.client.getDiff(this.description)).thenThrow(error);
+    when(this.api.getCommentOnlyChangedContent()).thenReturn(true);
+
+    ChangedFile changedFile = new ChangedFile("dir/foobar", new ArrayList<String>());
+    assertFalse(this.target.shouldComment(changedFile, 1));
+  }
+
+  @Test
+  public void itShouldNotCommentIfFileNotChanged() throws ClientException {
+    when(this.api.getCommentOnlyChangedContent()).thenReturn(true);
+    when(this.api.getCommentOnlyChangedContentContext()).thenReturn(0);
+    when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
+    when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
+
+    ChangedFile changedFile = new ChangedFile("dir/foobar", new ArrayList<String>());
+    Integer changedLine = 3;
+    assertFalse(this.target.shouldComment(changedFile, changedLine));
+  }
+
+  @Test
+  public void itShouldCommentIfFileChangedInLine() throws ClientException {
+    when(this.api.getCommentOnlyChangedContent()).thenReturn(true);
+    when(this.api.getCommentOnlyChangedContentContext()).thenReturn(0);
+    when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
+    when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
+
+    ChangedFile changedFile = new ChangedFile("dir/bar", new ArrayList<String>());
+    Integer changedLine = 3;
+    assertTrue(this.target.shouldComment(changedFile, changedLine));
+  }
+
+  @Test
+  public void itShouldCommentIfFileChangedInDifferentLine() throws ClientException {
+    when(this.api.getCommentOnlyChangedContent()).thenReturn(true);
+    when(this.api.getCommentOnlyChangedContentContext()).thenReturn(0);
+    when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
+    when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
+
+    ChangedFile changedFile = new ChangedFile("dir/bar", new ArrayList<String>());
+    Integer changedLine = 4;
+    assertFalse(this.target.shouldComment(changedFile, changedLine));
   }
 }

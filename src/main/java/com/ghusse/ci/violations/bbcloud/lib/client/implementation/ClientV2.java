@@ -82,7 +82,7 @@ public class ClientV2 {
   }
 
   public InputStream getDiff(PullRequestDescription pullRequest) throws ClientException {
-    LOGGER.debug("Lists modified files");
+    LOGGER.debug("Get diff from pull request");
 
     java.lang.String url = java.lang.String.format(Locale.ENGLISH,
             "%s/repositories/%s/%s/pullrequests/%s/diff",
@@ -94,6 +94,7 @@ public class ClientV2 {
     try {
       return this.client.get(url);
     } catch (RestClientException e) {
+      LOGGER.error("Cannot get diff for PR "+pullRequest.getId());
       throw new ClientException("Error while requesting the api.", pullRequest, e);
     }
   }

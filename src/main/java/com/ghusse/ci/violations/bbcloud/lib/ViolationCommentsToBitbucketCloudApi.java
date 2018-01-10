@@ -81,10 +81,11 @@ public class ViolationCommentsToBitbucketCloudApi {
     return username;
   }
 
-  public void toPullRequest() throws Exception {
+  public Integer toPullRequest() throws Exception {
     checkState();
     final CommentsProvider commentsProvider = new CommentsProvider(this);
     createComments(commentsProvider, violations, BITBUCKET_MAX_COMMENT_SIZE);
+    return commentsProvider.getLinesCommented();
   }
 
   public ViolationCommentsToBitbucketCloudApi withBitbucketServerUrl(String bitbucketServerUrl) {

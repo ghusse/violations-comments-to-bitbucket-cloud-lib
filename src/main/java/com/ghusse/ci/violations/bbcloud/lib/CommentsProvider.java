@@ -37,16 +37,19 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   private static final Logger LOG = LoggerFactory.getLogger(CommentsProvider.class);
 
   private final DiffParser diffParser;
+  private final UnifiedDiffParser uniDiff;
   private final Client client;
-  private final ViolationCommentsToBitbucketCloudApi api;
+  private ViolationCommentsToBitbucketCloudApi api;
+  private Integer linesCommented = 0;
 
   private PullRequestDescription pullRequestDescription;
 
   @Inject
-  public CommentsProvider(Client client, DiffParser diffParser) {
+  public CommentsProvider(ViolationCommentsToBitbucketCloudApi api, Client client, DiffParser diffParser, UnifiedDiffParser uniDiff) {
     this.client = client;
     this.diffParser = diffParser;
-    this.api = null;
+    this.uniDiff = uniDiff;
+    this.api = api;
   }
 
   public CommentsProvider(ViolationCommentsToBitbucketCloudApi violationCommentsToBitbucketApi) {
@@ -60,17 +63,18 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
     ClientV2 clientV2 = new ClientV2(restClient, mapper);
     this.client = new Client(clientV1, clientV2);
     this.diffParser = new DiffParser();
-    this.api = violationCommentsToBitbucketApi;
+    this.uniDiff = new UnifiedDiffParser();
 
     PullRequestDescription description =
         new PullRequestDescription(
             this.api.getProjectKey(),
             this.api.getRepoSlug(),
             String.valueOf(this.api.getPullRequestId()));
-    this.init(this.api.getUsername(), this.api.getPassword(), description);
+    this.init(this.api.getUsername(), this.api.getPassword(), this.api, description);
   }
 
-  public void init(String userName, String password, PullRequestDescription description) {
+  public void init(String userName, String password, ViolationCommentsToBitbucketCloudApi violationCommentsToBitbucketApi, PullRequestDescription description) {
+    this.api = violationCommentsToBitbucketApi;
     this.client.setAuthentication(userName, password);
     this.pullRequestDescription = description;
   }
@@ -123,13 +127,16 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
 
   @Override
   public List<ChangedFile> getFiles() {
+
     try {
+      LOG.debug("Get files");
       InputStream diff = this.client.getDiff(this.pullRequestDescription);
 
       List<String> paths = this.diffParser.getChangedFiles(diff);
 
       return getChangedFiles(paths);
     } catch (ClientException e) {
+      LOG.error("Unable to retrieve files");
       throw new CommentsProviderError("Unable to get the diff for a pull request", e, this.pullRequestDescription);
     }
   }
@@ -163,22 +170,29 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
     }
     InputStream diff;
     try {
+      LOG.debug("Should comment " + changedFile.getFilename() + ":" +changedLine);
       diff = this.client.getDiff(this.pullRequestDescription);
-
-      UnifiedDiffParser uniDiff = new UnifiedDiffParser();
 
       final int context = api.getCommentOnlyChangedContentContext();
       final List<Diff> diffs = uniDiff.parse(diff);
-      return shouldComment(changedFile, changedLine, context, diffs);
+      boolean shouldComment = shouldComment(changedFile, changedLine, context, diffs);
+
+      if (shouldComment) {
+        LOG.debug("  YES");
+        this.linesCommented++;
+      } else {
+        LOG.debug("  NO");
+      }
+
+      return shouldComment;
     } catch (ClientException e) {
       LOG.debug("  Client Error");
       e.printStackTrace();
-      return true;
+      return false;
     }
   }
 
-  boolean shouldComment(
-      ChangedFile changedFile, Integer changedLine, int context, List<Diff> diffs) {
+  boolean shouldComment(ChangedFile changedFile, Integer changedLine, int context, List<Diff> diffs) {
     for (final Diff diff : diffs) {
       final String destinationToString = diff.getToFileName().substring(2);
       if (!isNullOrEmpty(destinationToString)) {
@@ -224,4 +238,12 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   public boolean shouldKeepOldComments() {
     return this.api.getShouldKeepOldComments();
   }
+
+public Integer getLinesCommented() {
+    return linesCommented;
+}
+
+public void setLinesCommented(Integer linesCommented) {
+    this.linesCommented = linesCommented;
+}
 }
