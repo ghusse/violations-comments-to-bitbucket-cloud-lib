@@ -1,7 +1,11 @@
 package com.ghusse.ci.violations.bbcloud.lib;
 
+import java.io.InputStream;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Locale;
+
+import io.reflectoring.diffparser.api.model.Diff;
 
 public class PullRequestDescription implements Serializable {
   private final String userName;

@@ -41,11 +41,13 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   private final Client client;
   private ViolationCommentsToBitbucketCloudApi api;
   private Integer linesCommented = 0;
+  private List<Diff> diffs;
 
   private PullRequestDescription pullRequestDescription;
 
   @Inject
-  public CommentsProvider(ViolationCommentsToBitbucketCloudApi api, Client client, DiffParser diffParser, UnifiedDiffParser uniDiff) {
+  public CommentsProvider(ViolationCommentsToBitbucketCloudApi api,
+          Client client, DiffParser diffParser, UnifiedDiffParser uniDiff) {
     this.client = client;
     this.diffParser = diffParser;
     this.uniDiff = uniDiff;
@@ -57,6 +59,8 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
     ObjectMapper mapper = new ObjectMapper();
     JsonHttpContentFactory contentFactory = new JsonHttpContentFactory(mapper);
     NetHttpTransport transport = new NetHttpTransport();
+    
+    this.api = violationCommentsToBitbucketApi;
 
     RestClient restClient = new RestClient(transport, contentFactory);
     ClientV1 clientV1 = new ClientV1(restClient);
@@ -65,18 +69,29 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
     this.diffParser = new DiffParser();
     this.uniDiff = new UnifiedDiffParser();
 
-    PullRequestDescription description =
-        new PullRequestDescription(
-            this.api.getProjectKey(),
-            this.api.getRepoSlug(),
-            String.valueOf(this.api.getPullRequestId()));
+    PullRequestDescription description = new PullRequestDescription(this.api.getProjectKey(),
+                                                                    this.api.getRepoSlug(),
+                                                                    String.valueOf(this.api.getPullRequestId()));
+
     this.init(this.api.getUsername(), this.api.getPassword(), this.api, description);
   }
 
-  public void init(String userName, String password, ViolationCommentsToBitbucketCloudApi violationCommentsToBitbucketApi, PullRequestDescription description) {
+  public void init(String userName, String password,
+                   ViolationCommentsToBitbucketCloudApi violationCommentsToBitbucketApi,
+                   PullRequestDescription description) {
     this.api = violationCommentsToBitbucketApi;
     this.client.setAuthentication(userName, password);
     this.pullRequestDescription = description;
+    
+    try {
+        InputStream diff = this.client.getDiff(description);
+        diffs = uniDiff.parse(diff);
+      } catch (ClientException e) {
+        LOG.debug("  Client Error: Cannot get Diff");
+        diffs = new ArrayList<>();
+        e.printStackTrace();
+      }
+
   }
 
   @Override
@@ -168,28 +183,19 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
     if (!api.getCommentOnlyChangedContent()) {
       return true;
     }
-    InputStream diff;
-    try {
-      LOG.debug("Should comment " + changedFile.getFilename() + ":" +changedLine);
-      diff = this.client.getDiff(this.pullRequestDescription);
+    LOG.debug("Should comment " + changedFile.getFilename() + ":" +changedLine +"?");
 
-      final int context = api.getCommentOnlyChangedContentContext();
-      final List<Diff> diffs = uniDiff.parse(diff);
-      boolean shouldComment = shouldComment(changedFile, changedLine, context, diffs);
+    final int context = api.getCommentOnlyChangedContentContext();
+    boolean shouldComment = shouldComment(changedFile, changedLine, context, diffs);
 
-      if (shouldComment) {
-        LOG.debug("  YES");
-        this.linesCommented++;
-      } else {
-        LOG.debug("  NO");
-      }
-
-      return shouldComment;
-    } catch (ClientException e) {
-      LOG.debug("  Client Error");
-      e.printStackTrace();
-      return false;
+    if (shouldComment) {
+      LOG.debug("  YES");
+      this.linesCommented++;
+    } else {
+      LOG.debug("  NO");
     }
+
+    return shouldComment;
   }
 
   boolean shouldComment(ChangedFile changedFile, Integer changedLine, int context, List<Diff> diffs) {

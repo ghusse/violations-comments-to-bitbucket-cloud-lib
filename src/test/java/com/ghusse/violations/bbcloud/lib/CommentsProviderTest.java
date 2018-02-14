@@ -41,11 +41,12 @@ public class CommentsProviderTest {
   private DiffParser parser;
 
   @Mock
-  private UnifiedDiffParser uniParser;
-
-  @Mock
   private InputStream inputStream;
 
+  @Mock
+  private UnifiedDiffParser uniParser;
+
+  
   @Mock
   private ViolationCommentsToBitbucketCloudApi api;
 
@@ -54,16 +55,10 @@ public class CommentsProviderTest {
 
   private PullRequestDescription description;
 
-  private List<Diff> diffs;
-
+  private List<Diff> diffs = new ArrayList<>();
+  
   @Before
-  public void init(){
-    this.description = new PullRequestDescription("repoUser", "repo", "42");
-    this.target.init("user", "pass", this.api, this.description);
-
-    this.diffs = new ArrayList<>();
-
-
+  public void init() {
     List<Line> lines1 = new ArrayList<>();
     lines1.add(new Line(LineType.NEUTRAL, "line2"));
     lines1.add(new Line(LineType.FROM, "line3"));
@@ -97,7 +92,19 @@ public class CommentsProviderTest {
     diff.setToFileName("b/dir/bar");
     diff.setHunks(hunks);
 
-    this.diffs.add(diff);
+    diffs.add(diff);
+    
+    this.description = new PullRequestDescription("repoUser", "repo", "42");
+    try {
+        when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
+    } catch (ClientException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+    }
+    when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
+
+    this.target.init("user", "pass", this.api, this.description);
+    
   }
 
   @Test
@@ -290,6 +297,8 @@ public class CommentsProviderTest {
     when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
     when(this.uniParser.parse(this.inputStream)).thenReturn(new ArrayList<Diff>());
 
+    this.target.init("user", "pass", this.api, this.description);
+
     ChangedFile changedFile = new ChangedFile("dir/foo", new ArrayList<String>());
     Integer changedLine = 1;
     assertFalse(this.target.shouldComment(changedFile, changedLine));
@@ -300,6 +309,10 @@ public class CommentsProviderTest {
     ClientException error = mock(ClientException.class);
     when(this.client.getDiff(this.description)).thenThrow(error);
     when(this.api.getCommentOnlyChangedContent()).thenReturn(true);
+    when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
+    when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
+
+    this.target.init("user", "pass", this.api, this.description);
 
     ChangedFile changedFile = new ChangedFile("dir/foobar", new ArrayList<String>());
     assertFalse(this.target.shouldComment(changedFile, 1));
@@ -312,6 +325,7 @@ public class CommentsProviderTest {
     when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
     when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
 
+    this.target.init("user", "pass", this.api, this.description);
     ChangedFile changedFile = new ChangedFile("dir/foobar", new ArrayList<String>());
     Integer changedLine = 3;
     assertFalse(this.target.shouldComment(changedFile, changedLine));
@@ -324,6 +338,7 @@ public class CommentsProviderTest {
     when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
     when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
 
+    this.target.init("user", "pass", this.api, this.description);
     ChangedFile changedFile = new ChangedFile("dir/bar", new ArrayList<String>());
     Integer changedLine = 3;
     assertTrue(this.target.shouldComment(changedFile, changedLine));
@@ -336,6 +351,7 @@ public class CommentsProviderTest {
     when(this.client.getDiff(this.description)).thenReturn(this.inputStream);
     when(this.uniParser.parse(this.inputStream)).thenReturn(this.diffs);
 
+    this.target.init("user", "pass", this.api, this.description);
     ChangedFile changedFile = new ChangedFile("dir/bar", new ArrayList<String>());
     Integer changedLine = 4;
     assertFalse(this.target.shouldComment(changedFile, changedLine));
