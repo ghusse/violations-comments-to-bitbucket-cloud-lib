@@ -12,7 +12,7 @@ public class CommentTest {
 
     String result = comment.toString();
 
-    assertTrue("Should contain properties values", result.contains("id: 0, file: file, line: null-42, content: Comment"));
+    assertTrue("Should contain properties values", result.contains("id: 0, file: file, line: 42, content: Comment"));
     assertTrue("Should contain the class name", result.contains(Comment.class.getName()));
   }
 }

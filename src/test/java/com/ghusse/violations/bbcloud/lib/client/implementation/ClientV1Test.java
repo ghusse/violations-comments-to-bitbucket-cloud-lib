@@ -65,7 +65,6 @@ public class ClientV1Test {
     Comment captured = commentCaptor.getValue();
     assertEquals("Content", captured.getContent());
     assertNull(captured.getFile());
-    assertNull(captured.getLineFrom());
     assertNull(captured.getLineTo());
   }
 

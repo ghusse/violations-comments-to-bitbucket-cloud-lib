@@ -21,10 +21,6 @@ public class Comment {
   @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private String file;
 
-  @JsonProperty("line_from")
-  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-  private Integer lineFrom;
-
   @JsonProperty("line_to")
   @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   private Integer lineTo;
@@ -48,10 +44,6 @@ public class Comment {
     return content;
   }
 
-  public Integer getLineFrom() {
-    return lineFrom;
-  }
-
   public Integer getLineTo() {
     return lineTo;
   }
@@ -63,11 +55,10 @@ public class Comment {
   @Override
   public String toString(){
     return String.format(Locale.ENGLISH,
-            "%s id: %d, file: %s, line: %d-%d, content: %s",
+            "%s id: %d, file: %s, line: %d, content: %s",
             super.toString(),
             this.id,
             this.file,
-            this.lineFrom,
             this.lineTo,
             this.content);
   }

@@ -1,14 +1,30 @@
 package com.ghusse.ci.violations.bbcloud.lib;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghusse.ci.violations.bbcloud.lib.client.Client;
 import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientException;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV1;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.ClientV2;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.JsonHttpContentFactory;
+import com.ghusse.ci.violations.bbcloud.lib.client.implementation.RestClient;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.inject.Inject;
+
+import io.reflectoring.diffparser.api.UnifiedDiffParser;
+import io.reflectoring.diffparser.api.model.Diff;
+import io.reflectoring.diffparser.api.model.Hunk;
+import io.reflectoring.diffparser.api.model.Line;
+import io.reflectoring.diffparser.api.model.Line.LineType;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import se.bjurr.violations.comments.lib.model.ChangedFile;
 import se.bjurr.violations.comments.lib.model.Comment;
 import se.bjurr.violations.lib.model.Violation;
 import se.bjurr.violations.lib.util.Optional;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -21,19 +37,61 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   private static final Logger LOG = LoggerFactory.getLogger(CommentsProvider.class);
 
   private final DiffParser diffParser;
+  private final UnifiedDiffParser uniDiff;
   private final Client client;
+  private ViolationCommentsToBitbucketCloudApi api;
+  private Integer linesCommented = 0;
+  private List<Diff> diffs;
 
   private PullRequestDescription pullRequestDescription;
 
   @Inject
-  public CommentsProvider(Client client, DiffParser diffParser) {
+  public CommentsProvider(ViolationCommentsToBitbucketCloudApi api,
+          Client client, DiffParser diffParser, UnifiedDiffParser uniDiff) {
     this.client = client;
     this.diffParser = diffParser;
+    this.uniDiff = uniDiff;
+    this.api = api;
   }
 
-  public void init(String userName, String password, PullRequestDescription description) {
+  public CommentsProvider(ViolationCommentsToBitbucketCloudApi violationCommentsToBitbucketApi) {
+
+    ObjectMapper mapper = new ObjectMapper();
+    JsonHttpContentFactory contentFactory = new JsonHttpContentFactory(mapper);
+    NetHttpTransport transport = new NetHttpTransport();
+    
+    this.api = violationCommentsToBitbucketApi;
+
+    RestClient restClient = new RestClient(transport, contentFactory);
+    ClientV1 clientV1 = new ClientV1(restClient);
+    ClientV2 clientV2 = new ClientV2(restClient, mapper);
+    this.client = new Client(clientV1, clientV2);
+    this.diffParser = new DiffParser();
+    this.uniDiff = new UnifiedDiffParser();
+
+    PullRequestDescription description = new PullRequestDescription(this.api.getProjectKey(),
+                                                                    this.api.getRepoSlug(),
+                                                                    String.valueOf(this.api.getPullRequestId()));
+
+    this.init(this.api.getUsername(), this.api.getPassword(), this.api, description);
+  }
+
+  public void init(String userName, String password,
+                   ViolationCommentsToBitbucketCloudApi violationCommentsToBitbucketApi,
+                   PullRequestDescription description) {
+    this.api = violationCommentsToBitbucketApi;
     this.client.setAuthentication(userName, password);
     this.pullRequestDescription = description;
+    
+    try {
+        InputStream diff = this.client.getDiff(description);
+        diffs = uniDiff.parse(diff);
+      } catch (ClientException e) {
+        LOG.debug("  Client Error: Cannot get Diff");
+        diffs = new ArrayList<>();
+        e.printStackTrace();
+      }
+
   }
 
   @Override
@@ -84,13 +142,16 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
 
   @Override
   public List<ChangedFile> getFiles() {
+
     try {
+      LOG.debug("Get files");
       InputStream diff = this.client.getDiff(this.pullRequestDescription);
 
       List<String> paths = this.diffParser.getChangedFiles(diff);
 
       return getChangedFiles(paths);
     } catch (ClientException e) {
+      LOG.error("Unable to retrieve files");
       throw new CommentsProviderError("Unable to get the diff for a pull request", e, this.pullRequestDescription);
     }
   }
@@ -118,22 +179,77 @@ public class CommentsProvider implements se.bjurr.violations.comments.lib.model.
   }
 
   @Override
-  public boolean shouldComment(ChangedFile changedFile, Integer integer) {
-    throw new UnsupportedOperationException();
+  public boolean shouldComment(ChangedFile changedFile, Integer changedLine) {
+    if (!api.getCommentOnlyChangedContent()) {
+      return true;
+    }
+    LOG.debug("Should comment " + changedFile.getFilename() + ":" +changedLine +"?");
+
+    final int context = api.getCommentOnlyChangedContentContext();
+    boolean shouldComment = shouldComment(changedFile, changedLine, context, diffs);
+
+    if (shouldComment) {
+      LOG.debug("  YES");
+      this.linesCommented++;
+    } else {
+      LOG.debug("  NO");
+    }
+
+    return shouldComment;
+  }
+
+  boolean shouldComment(ChangedFile changedFile, Integer changedLine, int context, List<Diff> diffs) {
+    for (final Diff diff : diffs) {
+      final String destinationToString = diff.getToFileName().substring(2);
+      if (!isNullOrEmpty(destinationToString)) {
+        if (destinationToString.equals(changedFile.getFilename())) {
+          if (diff.getHunks() != null) {
+            for (final Hunk hunk : diff.getHunks()) {
+              Integer lineStart = hunk.getToFileRange().getLineStart();
+              Integer position = lineStart - 1;
+              for (Line line : hunk.getLines()) {
+                if (LineType.NEUTRAL.equals(line.getLineType())) {
+                  position += 1;
+                } else if (LineType.TO.equals(line.getLineType())) {
+                  position += 1;
+                  if (position >= changedLine - context && position <= changedLine + context) {
+                    return true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   @Override
   public boolean shouldCreateCommentWithAllSingleFileComments() {
-    throw new UnsupportedOperationException();
+    return this.api.getCreateCommentWithAllSingleFileComments();
   }
 
   @Override
   public boolean shouldCreateSingleFileComment() {
-    throw new UnsupportedOperationException();
+    return this.api.getCreateSingleFileComments();
   }
 
   @Override
-  public Optional<String> findCommentFormat(Violation violation) {
-    throw new UnsupportedOperationException();
+  public Optional<String> findCommentFormat(ChangedFile arg0, Violation arg1) {
+    return Optional.absent();
   }
+
+  @Override
+  public boolean shouldKeepOldComments() {
+    return this.api.getShouldKeepOldComments();
+  }
+
+public Integer getLinesCommented() {
+    return linesCommented;
+}
+
+public void setLinesCommented(Integer linesCommented) {
+    this.linesCommented = linesCommented;
+}
 }
